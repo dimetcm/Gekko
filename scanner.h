@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <map>
 
 #include "token.h"
 
@@ -40,6 +41,20 @@ private:
     bool IsDigit(char c) const;
     bool IsAlpha(char c) const;
     bool IsAlphanNmeric(char c) const;
+
+    class StaticData 
+    {
+    public:
+        static const StaticData& Instance() { static const StaticData data; return data; }
+
+        bool KeywordToTokenType(std::string_view keyword, Token::Type& outType) const;
+
+    private:
+        StaticData();
+    private:
+        std::map<std::string_view, Token::Type> m_keywordToTokenType;
+    };
+    
 
     std::string_view m_source;
     IErrorReporter& m_errorReporter;

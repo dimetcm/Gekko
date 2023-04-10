@@ -189,5 +189,41 @@ void Scanner::ScanIdentifier()
         Advance();
     }
     
-    AddToken(Token::Type::Identifier);
+    Token::Type type = Token::Type::Identifier;
+    std::string_view keyword = m_source.substr(m_start, m_current-m_start);
+    StaticData::Instance().KeywordToTokenType(keyword, type);
+
+    AddToken(type);
+}
+
+Scanner::StaticData::StaticData()
+{
+    m_keywordToTokenType.insert({"return", Token::Type::Return});
+    m_keywordToTokenType.insert({"nil", Token::Type::Nil});
+    m_keywordToTokenType.insert({"false", Token::Type::False});
+    m_keywordToTokenType.insert({"true", Token::Type::True});
+    m_keywordToTokenType.insert({"and", Token::Type::And});
+    m_keywordToTokenType.insert({"or", Token::Type::Or});
+    m_keywordToTokenType.insert({"if", Token::Type::If});
+    m_keywordToTokenType.insert({"else", Token::Type::Else});
+    m_keywordToTokenType.insert({"for", Token::Type::For});
+    m_keywordToTokenType.insert({"while", Token::Type::While});
+    m_keywordToTokenType.insert({"fun", Token::Type::Fun});
+    m_keywordToTokenType.insert({"var", Token::Type::Var});
+    m_keywordToTokenType.insert({"class", Token::Type::Class});
+    m_keywordToTokenType.insert({"this", Token::Type::This});
+    m_keywordToTokenType.insert({"super", Token::Type::Super});
+    m_keywordToTokenType.insert({"print", Token::Type::Print});
+}
+
+bool Scanner::StaticData::KeywordToTokenType(std::string_view keyword, Token::Type& outType) const
+{
+    const auto& it = m_keywordToTokenType.find(keyword);
+    if (it == m_keywordToTokenType.cend())
+    {
+        return false; 
+    }
+
+    outType = it->second;
+    return true;
 }
