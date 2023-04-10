@@ -41,11 +41,33 @@ void Scanner::ScanToken()
 
         case '/': 
         {
-            if (AdvanceIfMatch('/'))
+            if (AdvanceIfMatch('/')) // // comments
             {
                 while (Peek() != '\n' && !IsAtEnd())
                 {
                     Advance();
+                }
+            }
+            else if (AdvanceIfMatch('*')) // /* comments
+            {
+                while (!IsAtEnd())
+                {
+                    if (AdvanceIfMatch('*') == '/')
+                    {
+                        Advance(); // consume '/'
+                        break;
+                    }
+                    else if (Peek() == '\n')
+                    {
+                        ++m_line;
+                    }
+
+                    Advance();
+                }
+                
+                if (IsAtEnd())
+                {
+                    m_errorReporter.OnError(m_line, "Unterminated comment block.");
                 }
             }
             else
