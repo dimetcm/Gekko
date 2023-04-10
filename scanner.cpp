@@ -68,6 +68,10 @@ void Scanner::ScanToken()
             {
                 ScanNumberLiteral();
             }
+            else if (IsAlpha(c))
+            {
+                ScanIdentifier();
+            }
             else
             {
                 m_errorReporter.OnError(m_line, "Unexpected character.");
@@ -140,6 +144,16 @@ bool Scanner::IsDigit(char c) const
     return c >= '0' && c <= '9';
 }
 
+bool Scanner::IsAlpha(char c) const
+{
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
+}
+
+bool Scanner::IsAlphanNmeric(char c) const
+{
+    return IsAlpha(c) || IsDigit(c);
+}
+
 void Scanner::ScanNumberLiteral()
 {
     int integralPart = 0;
@@ -166,4 +180,14 @@ void Scanner::ScanNumberLiteral()
     }
 
     AddToken(Token::Type::Number, integralPart + fractionalPart);  
+}
+
+void Scanner::ScanIdentifier()
+{
+    while (IsAlphanNmeric(Peek()))
+    {
+        Advance();
+    }
+    
+    AddToken(Token::Type::Identifier);
 }

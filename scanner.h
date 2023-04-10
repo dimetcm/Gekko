@@ -30,6 +30,7 @@ private:
 
     void ScanStringLiteral();
     void ScanNumberLiteral();
+    void ScanIdentifier();
 
     char Advance();
     char AdvanceIfMatch(char match);
@@ -37,6 +38,8 @@ private:
     bool IsAtEnd() const;
 
     bool IsDigit(char c) const;
+    bool IsAlpha(char c) const;
+    bool IsAlphanNmeric(char c) const;
 
     std::string_view m_source;
     IErrorReporter& m_errorReporter;
