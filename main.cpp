@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <assert.h>
 #include "scanner.h"
 
 class ErrorReporter : public Scanner::IErrorReporter
@@ -67,8 +68,36 @@ void runPrompt()
     }
 }
 
+void runTests()
+{
+    ErrorReporter errorReporter;
+
+    // empty source
+    {
+        Scanner scanner("", errorReporter);
+        assert(scanner.Tokens().size() == 1);
+        assert(scanner.Tokens()[0].m_type == Token::Type::EndOfFile);
+    }
+
+    // declaring number variable
+    {
+        Scanner scanner("var test = 42.7", errorReporter);
+        assert(scanner.Tokens().size() == 5);
+        assert(scanner.Tokens()[0].m_type == Token::Type::Var);
+        assert(scanner.Tokens()[1].m_type == Token::Type::Identifier);
+        assert(scanner.Tokens()[1].m_lexeme == "test");
+        assert(scanner.Tokens()[2].m_type == Token::Type::Equal);
+        assert(scanner.Tokens()[3].m_type == Token::Type::Number);
+        double val = std::any_cast<double>(scanner.Tokens()[3].m_literalvalue);
+        assert(val == 42.7);
+        assert(scanner.Tokens()[4].m_type == Token::Type::EndOfFile);
+    }
+}
+
 int main(int argc, char* argv[])
 {
+    runTests();
+
     if (argc > 2)
     {
         std::cout << "Usage: Gekko [script]" << std::endl;

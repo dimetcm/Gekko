@@ -1,4 +1,5 @@
 #include "scanner.h"
+#include <charconv>
 
 Scanner::Scanner(std::string_view source, IErrorReporter& errorReporter)
     : m_source(source)
@@ -178,16 +179,10 @@ bool Scanner::IsAlphanNmeric(char c) const
 
 void Scanner::ScanNumberLiteral()
 {
-    int integralPart = 0;
-
     while (IsDigit(Peek()))
     {
-        integralPart = integralPart * 10 + Peek() - '0';
         Advance();
     }
-
-    double fractionalPart = 0;
-    double p = 0.1;
 
     if (Peek() == '.')
     {
@@ -195,13 +190,20 @@ void Scanner::ScanNumberLiteral()
         
         while (IsDigit(Peek()))
         {
-            fractionalPart += p * (Peek() - '0');
-            p *= 0.1;
             Advance();
         }        
     }
 
-    AddToken(Token::Type::Number, integralPart + fractionalPart);  
+    std::string_view numberStr = m_source.substr(m_start, m_current-m_start);
+    double value = 0.0;
+    if (std::from_chars(numberStr.data(), numberStr.data() + numberStr.size(), value).ec == std::errc{})
+    {
+        AddToken(Token::Type::Number, value);  
+    }
+    else
+    {
+        m_errorReporter.OnError(m_line, "Can't scan number literal.");   
+    }
 }
 
 void Scanner::ScanIdentifier()
