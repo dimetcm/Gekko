@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <optional>
 #include <assert.h>
 #include "scanner.h"
 
@@ -37,22 +38,32 @@ void run(std::string_view source)
 
 }
 
-void runFile(char* filename)
+std::optional<std::string> GetFileContent(const char* filename)
 {
-    std::cout << "running file: " << filename << std::endl;
-
     std::ifstream script(filename);
     if (script.is_open())
     {
         std::stringstream buffer;
         buffer << script.rdbuf();
-
-        run(buffer.str());
         script.close();
+
+        return buffer.str();
     }
     else
     {
         std::cout << "can't open file: " << filename << std::endl;
+        return std::nullopt;
+    }
+}
+
+void runFile(const char* filename)
+{
+    std::cout << "running file: " << filename << std::endl;
+
+    std::optional<std::string> script = GetFileContent(filename);
+    if (script.has_value())
+    {
+        run(script.value());
     }
 }
 
@@ -90,6 +101,25 @@ void runTests()
         assert(scanner.Tokens()[3].m_type == Token::Type::Number);
         double val = std::any_cast<double>(scanner.Tokens()[3].m_literalvalue);
         assert(val == 42.7);
+        assert(scanner.Tokens()[4].m_type == Token::Type::EndOfFile);
+    }
+
+    // multiline script
+    {
+        std::optional<std::string> script = GetFileContent("../../scripts/unit_test_1.gk");
+
+        assert(script.has_value());
+
+        Scanner scanner(script.value(), errorReporter);
+
+        assert(scanner.Tokens().size() == 5);
+        assert(scanner.Tokens()[0].m_type == Token::Type::Var);
+        assert(scanner.Tokens()[1].m_type == Token::Type::Identifier);
+        assert(scanner.Tokens()[1].m_lexeme == "someString");
+        assert(scanner.Tokens()[2].m_type == Token::Type::Equal);
+        assert(scanner.Tokens()[3].m_type == Token::Type::String);
+        std::string_view val = std::any_cast<std::string_view>(scanner.Tokens()[3].m_literalvalue);
+        assert(val == "TestString");
         assert(scanner.Tokens()[4].m_type == Token::Type::EndOfFile);
     }
 }

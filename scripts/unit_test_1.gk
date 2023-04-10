@@ -1,0 +1,4 @@
+// one line comment test
+var someString = "TestString"
+/* multiline comment test
+still in comment */

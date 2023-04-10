@@ -53,7 +53,7 @@ void Scanner::ScanToken()
             {
                 while (!IsAtEnd())
                 {
-                    if (AdvanceIfMatch('*') == '/')
+                    if (AdvanceIfMatch('*') && Peek() == '/')
                     {
                         Advance(); // consume '/'
                         break;
@@ -133,7 +133,7 @@ void Scanner::ScanStringLiteral()
     
     Advance(); // closing "
 
-    AddToken(Token::Type::String, m_source.substr(m_start + 1, m_current - m_start - 1));
+    AddToken(Token::Type::String, m_source.substr(m_start + 1, m_current - m_start - 2));
 }
 
 bool Scanner::IsAtEnd() const
@@ -151,7 +151,7 @@ char Scanner::Advance()
     return m_source[m_current++];
 }
 
-char Scanner::AdvanceIfMatch(char match)
+bool Scanner::AdvanceIfMatch(char match)
 {
     if (IsAtEnd() || m_source[m_current] != match)
     {

@@ -34,8 +34,8 @@ private:
     void ScanIdentifier();
 
     char Advance();
-    char AdvanceIfMatch(char match);
     char Peek() const;
+    bool AdvanceIfMatch(char match);
     bool IsAtEnd() const;
 
     bool IsDigit(char c) const;
