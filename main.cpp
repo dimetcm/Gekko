@@ -5,6 +5,7 @@
 #include <optional>
 #include <assert.h>
 #include "scanner.h"
+#include "astprinter.h"
 
 class ErrorReporter : public Scanner::IErrorReporter
 {
@@ -127,6 +128,23 @@ void runTests()
 int main(int argc, char* argv[])
 {
     runTests();
+
+    std::any l1 = std::make_any<double>(123.0);
+    LiteralExpression l1Expression(l1);
+    Token minusToken(Token::Type::Minus, "-", std::any(), 1);
+    UnaryExpression unaryExpression(minusToken, l1Expression);
+    std::any l2 = std::make_any<double>(45.67);
+    LiteralExpression l2Expression(l2);
+    GroupingExpression groupingExpression(l2Expression);
+    Token starToken(Token::Type::Star, "*", std::any(), 1);
+    BinaryExpression binaryExpression(
+        unaryExpression,
+        starToken,
+        groupingExpression
+    );
+
+    ASTPrinter printer;
+    std::cout << printer.ToString(binaryExpression) << std::endl;
 
     if (argc > 2)
     {
