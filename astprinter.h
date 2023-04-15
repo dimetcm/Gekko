@@ -21,17 +21,19 @@ struct ASTPrinter : IExpression::IVisitor
 private:
     virtual void VisitUnaryExpression(const UnaryExpression& unaryExpression, IContext* context) const override
     {
-        Parenthesize(*context, unaryExpression.m_operator.m_lexeme, {&unaryExpression.m_expression});
+        const IExpression& child = *unaryExpression.m_expression;
+
+        Parenthesize(*context, unaryExpression.m_operator.m_lexeme, {&*unaryExpression.m_expression});
     }
 
     virtual void VisitBinaryExpression(const BinaryExpression& binaryExpression, IContext* context) const  override
     {
-        Parenthesize(*context, binaryExpression.m_operator.m_lexeme, {&binaryExpression.m_left, &binaryExpression.m_right});        
+        Parenthesize(*context, binaryExpression.m_operator.m_lexeme, {&*binaryExpression.m_left, &*binaryExpression.m_right});        
     }
 
     virtual void VisitGroupingExpression(const GroupingExpression& groupingExpression, IContext* context) const override
     {
-        Parenthesize(*context, "group", {&groupingExpression.m_expression});
+        Parenthesize(*context, "group", {&*groupingExpression.m_expression});
     }
 
     virtual void VisitLiteralExpression(const LiteralExpression& literalExpression, IContext* context) const override
@@ -65,5 +67,4 @@ private:
 
         visitorContext.m_result.append(")");
     }
-
 };

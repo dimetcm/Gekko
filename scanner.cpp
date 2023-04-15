@@ -1,9 +1,9 @@
 #include "scanner.h"
 #include <charconv>
+#include "gekko.h"
 
-Scanner::Scanner(std::string_view source, IErrorReporter& errorReporter)
+Scanner::Scanner(std::string_view source)
     : m_source(source)
-    , m_errorReporter(errorReporter)
 {
     ScanTokens();
 }
@@ -68,7 +68,7 @@ void Scanner::ScanToken()
                 
                 if (IsAtEnd())
                 {
-                    m_errorReporter.OnError(m_line, "Unterminated comment block.");
+                    Gekko::ReportError(m_line, "Unterminated comment block.");
                 }
             }
             else
@@ -97,7 +97,7 @@ void Scanner::ScanToken()
             }
             else
             {
-                m_errorReporter.OnError(m_line, "Unexpected character.");
+                Gekko::ReportError(m_line, "Unexpected character.");
             }
         }   
     }
@@ -127,7 +127,7 @@ void Scanner::ScanStringLiteral()
 
     if(IsAtEnd())
     {
-        m_errorReporter.OnError(m_line, "Unterminated string.");
+        Gekko::ReportError(m_line, "Unterminated string.");
         return;
     }
     
@@ -202,7 +202,7 @@ void Scanner::ScanNumberLiteral()
     }
     else
     {
-        m_errorReporter.OnError(m_line, "Can't scan number literal.");   
+        Gekko::ReportError(m_line, "Can't scan number literal.");   
     }
 }
 

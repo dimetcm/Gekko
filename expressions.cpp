@@ -1,7 +1,7 @@
 #include "expressions.h"
 
-UnaryExpression::UnaryExpression(const Token& op, const IExpression& expression)
-    : m_expression(expression)
+UnaryExpression::UnaryExpression(const Token& op, IExpressionPtr expression)
+    : m_expression(std::move(expression))
     , m_operator(op)
 {}
 
@@ -10,10 +10,10 @@ void UnaryExpression::Accept(const IVisitor& visitor, IVisitor::IContext* contex
     visitor.VisitUnaryExpression(*this, context);
 }
 
-BinaryExpression::BinaryExpression(const IExpression& left, const Token& op, const IExpression& right)
-    : m_left(left)
+BinaryExpression::BinaryExpression(IExpressionPtr left, const Token& op, IExpressionPtr right)
+    : m_left(std::move(left))
     , m_operator(op)
-    , m_right(right)
+    , m_right(std::move(right))
 {}
 
 void BinaryExpression::Accept(const IVisitor& visitor, IVisitor::IContext* context) const
@@ -21,8 +21,8 @@ void BinaryExpression::Accept(const IVisitor& visitor, IVisitor::IContext* conte
     visitor.VisitBinaryExpression(*this, context);
 }
 
-GroupingExpression::GroupingExpression(const IExpression& expression)
-    : m_expression(expression)
+GroupingExpression::GroupingExpression(IExpressionPtr expression)
+    : m_expression(std::move(expression))
 {}
 
 void GroupingExpression::Accept(const IVisitor& visitor, IVisitor::IContext* context) const

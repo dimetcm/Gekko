@@ -1,6 +1,7 @@
 #pragma once
 
 #include <any>
+#include <memory>
 
 struct Token;
 
@@ -31,34 +32,36 @@ public:
     virtual void Accept(const IVisitor& visitor, IVisitor::IContext* context = nullptr) const = 0;
 };
 
+using IExpressionPtr = std::unique_ptr<const IExpression>;
+
 struct UnaryExpression : public IExpression
 {
-    UnaryExpression(const Token& op, const IExpression& expression);
+    UnaryExpression(const Token& op, IExpressionPtr expression);
 
     virtual void Accept(const IVisitor& visitor, IVisitor::IContext* context) const override;
 
-    const IExpression& m_expression;
+    IExpressionPtr m_expression;
     const Token& m_operator;
 };
 
 struct BinaryExpression : public IExpression
 {
-    BinaryExpression(const IExpression& left, const Token& op, const IExpression& right);
+    BinaryExpression(IExpressionPtr left, const Token& op, IExpressionPtr right);
 
     virtual void Accept(const IVisitor& visitor, IVisitor::IContext* context) const override;
 
-    const IExpression& m_left;
+    IExpressionPtr m_left;
     const Token& m_operator;
-    const IExpression& m_right;
+    IExpressionPtr m_right;
 };
 
 struct GroupingExpression : public IExpression
 {
-    GroupingExpression(const IExpression& expression);
+    GroupingExpression(IExpressionPtr expression);
 
     virtual void Accept(const IVisitor& visitor, IVisitor::IContext* context) const override;
 
-    const IExpression& m_expression;
+    IExpressionPtr m_expression;
 };
 
 struct LiteralExpression : public IExpression

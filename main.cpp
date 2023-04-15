@@ -5,32 +5,12 @@
 #include <optional>
 #include <assert.h>
 #include "scanner.h"
+#include "parser.h"
 #include "astprinter.h"
-
-class ErrorReporter : public Scanner::IErrorReporter
-{
-public:
-    static ErrorReporter& Instance()
-    {
-        static ErrorReporter errorReporter;
-        return errorReporter;
-    }
-
-private:
-    virtual void OnError(int line, std::string_view message) override
-    {
-        Report(line, "", message);
-    }
-
-    void Report(int line, std::string_view where, std::string_view message)
-    {
-        std::cerr << "[line " << line << "] Error " << where << ": " << message << std::endl; 
-    }
-};
 
 void run(std::string_view source)
 {
-    Scanner scanner(source, ErrorReporter::Instance());
+    Scanner scanner(source);
     
     for (const Token& token : scanner.Tokens())
     {
@@ -82,18 +62,16 @@ void runPrompt()
 
 void runTests()
 {
-    ErrorReporter errorReporter;
-
     // empty source
     {
-        Scanner scanner("", errorReporter);
+        Scanner scanner("");
         assert(scanner.Tokens().size() == 1);
         assert(scanner.Tokens()[0].m_type == Token::Type::EndOfFile);
     }
 
     // declaring number variable
     {
-        Scanner scanner("var test = 42.7", errorReporter);
+        Scanner scanner("var test = 42.7");
         assert(scanner.Tokens().size() == 5);
         assert(scanner.Tokens()[0].m_type == Token::Type::Var);
         assert(scanner.Tokens()[1].m_type == Token::Type::Identifier);
@@ -111,7 +89,7 @@ void runTests()
 
         assert(script.has_value());
 
-        Scanner scanner(script.value(), errorReporter);
+        Scanner scanner(script.value());
 
         assert(scanner.Tokens().size() == 5);
         assert(scanner.Tokens()[0].m_type == Token::Type::Var);
@@ -122,29 +100,18 @@ void runTests()
         std::string_view val = std::any_cast<std::string_view>(scanner.Tokens()[3].m_literalvalue);
         assert(val == "TestString");
         assert(scanner.Tokens()[4].m_type == Token::Type::EndOfFile);
+
+        Parser parser(scanner.Tokens());
+        if (IExpressionPtr expression = parser.Parse(std::cerr))
+        {
+            expression->Accept(ASTPrinter());
+        }
     }
 }
 
 int main(int argc, char* argv[])
 {
     runTests();
-
-    std::any l1 = std::make_any<double>(123.0);
-    LiteralExpression l1Expression(l1);
-    Token minusToken(Token::Type::Minus, "-", std::any(), 1);
-    UnaryExpression unaryExpression(minusToken, l1Expression);
-    std::any l2 = std::make_any<double>(45.67);
-    LiteralExpression l2Expression(l2);
-    GroupingExpression groupingExpression(l2Expression);
-    Token starToken(Token::Type::Star, "*", std::any(), 1);
-    BinaryExpression binaryExpression(
-        unaryExpression,
-        starToken,
-        groupingExpression
-    );
-
-    ASTPrinter printer;
-    std::cout << printer.ToString(binaryExpression) << std::endl;
 
     if (argc > 2)
     {
