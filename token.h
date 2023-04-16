@@ -15,9 +15,11 @@ struct Token
         Dot,                        // '.'
         Minus,                      // '-'
         Plus,                       // '+'
+        Colon,                      // ':'
         Semicolon,                  // ';'
         Slash,                      // '/'
         Star,                       // '*'
+        Questionmark,               // '?'
 
         Bang,                       // '!'
         BangEqual,                  // '!='

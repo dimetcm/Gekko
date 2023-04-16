@@ -31,6 +31,17 @@ private:
         Parenthesize(*context, binaryExpression.m_operator.m_lexeme, {&*binaryExpression.m_left, &*binaryExpression.m_right});        
     }
 
+    virtual void VisitTernaryConditionalExpression(const TernaryConditionalExpression& ternaryConditionalExpression, IContext* context) const override
+    {
+        VisitorContext* visitorContext = static_cast<VisitorContext*>(context);
+
+        ternaryConditionalExpression.m_condition->Accept(*this, context);
+        visitorContext->m_result.append("?");
+        ternaryConditionalExpression.m_trueBranch->Accept(*this, context);
+        visitorContext->m_result.append(":");
+        ternaryConditionalExpression.m_falseBranch->Accept(*this, context);
+    }
+
     virtual void VisitGroupingExpression(const GroupingExpression& groupingExpression, IContext* context) const override
     {
         Parenthesize(*context, "group", {&*groupingExpression.m_expression});

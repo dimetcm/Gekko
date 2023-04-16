@@ -36,6 +36,7 @@ private:
  
     IExpressionPtr Expression();
     IExpressionPtr Comma();
+    IExpressionPtr TernaryConditional();
     IExpressionPtr Equality();
     IExpressionPtr Comparison();
     IExpressionPtr Term();

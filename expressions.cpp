@@ -21,6 +21,18 @@ void BinaryExpression::Accept(const IVisitor& visitor, IVisitor::IContext* conte
     visitor.VisitBinaryExpression(*this, context);
 }
 
+TernaryConditionalExpression::TernaryConditionalExpression(IExpressionPtr condition, IExpressionPtr trueBranch, IExpressionPtr falseBranch)
+    : m_condition(std::move(condition))
+    , m_trueBranch(std::move(trueBranch))
+    , m_falseBranch(std::move(falseBranch))
+{}
+
+
+void TernaryConditionalExpression::Accept(const IVisitor& visitor, IVisitor::IContext* context) const
+{
+       visitor.VisitTernaryConditionalExpression(*this, context);
+}
+
 GroupingExpression::GroupingExpression(IExpressionPtr expression)
     : m_expression(std::move(expression))
 {}

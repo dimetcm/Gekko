@@ -12,9 +12,11 @@ std::string_view TokenTypeToStringView(Token::Type tokenType)
         case Token::Type::Dot:                  { static std::string str("Dot"); return str; }
         case Token::Type::Minus:                { static std::string str("Minus"); return str; }
         case Token::Type::Plus:                 { static std::string str("Plus"); return str; }
+        case Token::Type::Colon:                { static std::string str("Colon"); return str; }
         case Token::Type::Semicolon:            { static std::string str("Semicolon"); return str; }
         case Token::Type::Slash:                { static std::string str("Slash"); return str; }
         case Token::Type::Star:                 { static std::string str("Star"); return str; }
+        case Token::Type::Questionmark:         { static std::string str("Questionmark"); return str; }
 
         case Token::Type::Bang:                 { static std::string str("Bang"); return str; }
         case Token::Type::BangEqual:            { static std::string str("BangEqual"); return str; }

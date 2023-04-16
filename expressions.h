@@ -7,6 +7,7 @@ struct Token;
 
 struct UnaryExpression;
 struct BinaryExpression;
+struct TernaryConditionalExpression;
 struct GroupingExpression;
 struct LiteralExpression;
 
@@ -24,6 +25,7 @@ public:
         virtual ~IVisitor() {}
         virtual void VisitUnaryExpression(const UnaryExpression& unaryExpression, IContext* context) const = 0;
         virtual void VisitBinaryExpression(const BinaryExpression& binaryExpression, IContext* context) const = 0;
+        virtual void VisitTernaryConditionalExpression(const TernaryConditionalExpression& ternaryConditionalExpression, IContext* context) const = 0;
         virtual void VisitGroupingExpression(const GroupingExpression& groupingExpression, IContext* context) const = 0;
         virtual void VisitLiteralExpression(const LiteralExpression& literalExpression, IContext* context) const = 0;
     };
@@ -53,6 +55,17 @@ struct BinaryExpression : public IExpression
     IExpressionPtr m_left;
     const Token& m_operator;
     IExpressionPtr m_right;
+};
+
+struct TernaryConditionalExpression : public IExpression
+{
+    TernaryConditionalExpression(IExpressionPtr condition, IExpressionPtr trueBranch, IExpressionPtr falseBranch);
+
+    virtual void Accept(const IVisitor& visitor, IVisitor::IContext* context) const override;
+
+    IExpressionPtr m_condition;
+    IExpressionPtr m_trueBranch;
+    IExpressionPtr m_falseBranch;
 };
 
 struct GroupingExpression : public IExpression

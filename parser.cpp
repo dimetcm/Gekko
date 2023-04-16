@@ -52,7 +52,31 @@ IExpressionPtr Parser::Expression()
 
 IExpressionPtr Parser::Comma()
 {
-    return ParseBinaryExpression(std::bind(&Parser::Equality, this), {Token::Type::Comma});
+    return TernaryConditional();
+}
+
+IExpressionPtr Parser::TernaryConditional()
+{
+    IExpressionPtr expression = Equality();
+
+    while (Match(Token::Type::Questionmark))
+    {
+        ++m_current; // consume questionmark
+        IExpressionPtr trueBranch = Expression();
+
+        if (Match(Token::Type::Colon))
+        {
+            ++m_current; // consume colon
+            IExpressionPtr falseBranch = Expression();
+            expression = std::make_unique<TernaryConditionalExpression>(std::move(expression), std::move(trueBranch), std::move(falseBranch));
+        }
+        else
+        {
+            throw ParseError(m_tokens[m_current], "missing colon ':' after questionmark '?' in ternary conditional operator.");
+        }
+    }
+
+    return expression;
 }
 
 IExpressionPtr Parser::Equality()

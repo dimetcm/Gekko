@@ -32,8 +32,10 @@ void Scanner::ScanToken()
         case '.': AddToken(Token::Type::Dot); break;
         case '-': AddToken(Token::Type::Minus); break;
         case '+': AddToken(Token::Type::Plus); break;
+        case ':': AddToken(Token::Type::Colon); break;
         case ';': AddToken(Token::Type::Semicolon); break;
         case '*': AddToken(Token::Type::Star); break;
+        case '?': AddToken(Token::Type::Questionmark); break;
 
         case '!': AddToken(AdvanceIfMatch('=') ? Token::Type::BangEqual : Token::Type::Bang); break;
         case '=': AddToken(AdvanceIfMatch('=') ? Token::Type::EqualEqual : Token::Type::Equal); break;

@@ -109,8 +109,23 @@ void runTests()
         }
     }
 
-    {
+    {   // comma test
         Scanner scanner("42.7, (7 + 8) * 20, true");
+        for (const Token& token : scanner.Tokens())
+        {
+            std::cout << token << std::endl;
+        }
+
+        Parser parser(scanner.Tokens());        
+        if (IExpressionPtr expression = parser.Parse(std::cerr))
+        {
+            ASTPrinter printer;
+            std::cout << printer.ToString(*expression);
+        }
+    }
+
+    {   // ternary conditional
+        Scanner scanner("2 + 2 == 4 ? true : false");
         for (const Token& token : scanner.Tokens())
         {
             std::cout << token << std::endl;
