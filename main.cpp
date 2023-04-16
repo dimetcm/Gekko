@@ -137,6 +137,25 @@ void runTests()
             ASTPrinter printer;
             std::cout << printer.ToString(*expression);
         }
+
+        std::cout << std::endl;
+    }
+
+    {   // broken binary expression
+        Scanner scanner("== 5 + 7");
+        for (const Token& token : scanner.Tokens())
+        {
+            std::cout << token << std::endl;
+        }
+
+        Parser parser(scanner.Tokens());        
+        if (IExpressionPtr expression = parser.Parse(std::cerr))
+        {
+            ASTPrinter printer;
+            std::cout << printer.ToString(*expression);
+        }
+
+        std::cout << std::endl;
     }
 }
 

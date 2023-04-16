@@ -31,8 +31,8 @@ private:
 
     IExpressionPtr ParseBinaryExpression(std::function<IExpressionPtr()> exprFunc, std::initializer_list<Token::Type> tokenTypes);
     bool MatchAny(std::initializer_list<Token::Type> tokenTypes) const;
-    bool Match(Token::Type typetokenType) const;
-
+    bool Match(Token::Type tokenType) const;
+    bool CanBeUnary(Token::Type tokenType) const;
  
     IExpressionPtr Expression();
     IExpressionPtr Comma();

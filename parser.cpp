@@ -33,7 +33,17 @@ IExpressionPtr Parser::Parse(std::ostream& logOutput)
 
 IExpressionPtr Parser::ParseBinaryExpression(std::function<IExpressionPtr()> exprFunc, std::initializer_list<Token::Type> tokenTypes)
 {
-   IExpressionPtr left = exprFunc();
+    for (Token::Type tokenType : tokenTypes)
+    {
+        if (!CanBeUnary(tokenType) && Match(tokenType))
+        {
+            const Token& op = m_tokens[m_current++];
+            exprFunc(); // discard right handed expression in case of an error
+            throw ParseError(op, "Binary operator appearing at the beginning of an expression");
+        }
+    }
+
+    IExpressionPtr left = exprFunc();
     while (MatchAny(tokenTypes))
     {
         const Token& op = m_tokens[m_current++];
@@ -87,7 +97,6 @@ IExpressionPtr Parser::Equality()
 IExpressionPtr Parser::Comparison()
 {    
     return ParseBinaryExpression(std::bind(&Parser::Term, this), {Token::Type::Greater, Token::Type::GreaterEqual, Token::Type::LessEqual, Token::Type::Less});
-
 } 
 
 IExpressionPtr Parser::Term()
@@ -154,4 +163,9 @@ bool Parser::MatchAny(std::initializer_list<Token::Type> tokenTypes) const
 bool Parser::Match(Token::Type tokenType) const
 {
     return m_tokens[m_current].m_type == tokenType;
+}
+
+bool Parser::CanBeUnary(Token::Type tokenType) const
+{
+    return tokenType == Token::Type::Minus || tokenType == Token::Type::Plus;
 }
