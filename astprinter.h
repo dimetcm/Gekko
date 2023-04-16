@@ -52,6 +52,10 @@ private:
         {
             visitorContext->m_result.append(*value);
         }
+        else if (const bool* value = std::any_cast<bool>(&literalExpression.m_value))
+        {
+            visitorContext->m_result.append(*value ? "true" : "false");
+        }
     }
 
     void Parenthesize(IContext& context, std::string_view name, std::initializer_list<const IExpression*> expressions) const

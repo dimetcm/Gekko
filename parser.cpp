@@ -47,8 +47,13 @@ IExpressionPtr Parser::ParseBinaryExpression(std::function<IExpressionPtr()> exp
 
 IExpressionPtr Parser::Expression()
 {
-    return Equality();
+    return Comma();
 } 
+
+IExpressionPtr Parser::Comma()
+{
+    return ParseBinaryExpression(std::bind(&Parser::Equality, this), {Token::Type::Comma});
+}
 
 IExpressionPtr Parser::Equality()
 {

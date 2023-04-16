@@ -30,7 +30,7 @@ void GroupingExpression::Accept(const IVisitor& visitor, IVisitor::IContext* con
     visitor.VisitGroupingExpression(*this, context);
 }
 
-LiteralExpression::LiteralExpression(const std::any& value)
+LiteralExpression::LiteralExpression(std::any value)
     : m_value(value)
 {}
 

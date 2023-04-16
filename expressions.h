@@ -57,7 +57,7 @@ struct BinaryExpression : public IExpression
 
 struct GroupingExpression : public IExpression
 {
-    GroupingExpression(IExpressionPtr expression);
+    explicit GroupingExpression(IExpressionPtr expression);
 
     virtual void Accept(const IVisitor& visitor, IVisitor::IContext* context) const override;
 
@@ -66,10 +66,10 @@ struct GroupingExpression : public IExpression
 
 struct LiteralExpression : public IExpression
 {
-    LiteralExpression(const std::any& value);
+    explicit LiteralExpression(std::any value);
     
     virtual void Accept(const IVisitor& visitor, IVisitor::IContext* context) const override;
 
-    const std::any& m_value;
+    std::any m_value;
 };
 
