@@ -97,7 +97,7 @@ void runTests()
         assert(scanner.Tokens()[1].m_lexeme == "someString");
         assert(scanner.Tokens()[2].m_type == Token::Type::Equal);
         assert(scanner.Tokens()[3].m_type == Token::Type::String);
-        std::string_view val = std::any_cast<std::string_view>(scanner.Tokens()[3].m_literalvalue);
+        std::string val = std::any_cast<std::string>(scanner.Tokens()[3].m_literalvalue);
         assert(val == "TestString");
         assert(scanner.Tokens()[4].m_type == Token::Type::EndOfFile);
 

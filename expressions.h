@@ -59,6 +59,7 @@ struct GroupingExpression : public IExpression
 
 struct LiteralExpression : public IExpression
 {
+    LiteralExpression();
     explicit LiteralExpression(std::any value);
     
     virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;

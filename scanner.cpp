@@ -135,7 +135,7 @@ void Scanner::ScanStringLiteral()
     
     Advance(); // closing "
 
-    AddToken(Token::Type::String, m_source.substr(m_start + 1, m_current - m_start - 2));
+    AddToken(Token::Type::String, std::string(m_source.substr(m_start + 1, m_current - m_start - 2)));
 }
 
 bool Scanner::IsAtEnd() const

@@ -58,7 +58,7 @@ private:
         {
             visitorContext->m_result.append(std::to_string(*value));
         }
-        else if (const std::string_view* value = std::any_cast<std::string_view>(&literalExpression.m_value))
+        else if (const std::string* value = std::any_cast<std::string>(&literalExpression.m_value))
         {
             visitorContext->m_result.append(*value);
         }

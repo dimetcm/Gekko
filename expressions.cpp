@@ -43,6 +43,9 @@ void GroupingExpression::Accept(const IExpressionVisitor& visitor, IExpressionVi
     visitor.VisitGroupingExpression(*this, context);
 }
 
+LiteralExpression::LiteralExpression()
+{}
+
 LiteralExpression::LiteralExpression(std::any value)
     : m_value(value)
 {}
