@@ -1,11 +1,12 @@
 #include "expressions.h"
+#include "expressionvisitor.h"
 
 UnaryExpression::UnaryExpression(const Token& op, IExpressionPtr expression)
     : m_expression(std::move(expression))
     , m_operator(op)
 {}
 
-void UnaryExpression::Accept(const IVisitor& visitor, IVisitor::IContext* context) const
+void UnaryExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
 {
     visitor.VisitUnaryExpression(*this, context);
 }
@@ -16,7 +17,7 @@ BinaryExpression::BinaryExpression(IExpressionPtr left, const Token& op, IExpres
     , m_right(std::move(right))
 {}
 
-void BinaryExpression::Accept(const IVisitor& visitor, IVisitor::IContext* context) const
+void BinaryExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
 {
     visitor.VisitBinaryExpression(*this, context);
 }
@@ -28,7 +29,7 @@ TernaryConditionalExpression::TernaryConditionalExpression(IExpressionPtr condit
 {}
 
 
-void TernaryConditionalExpression::Accept(const IVisitor& visitor, IVisitor::IContext* context) const
+void TernaryConditionalExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
 {
        visitor.VisitTernaryConditionalExpression(*this, context);
 }
@@ -37,7 +38,7 @@ GroupingExpression::GroupingExpression(IExpressionPtr expression)
     : m_expression(std::move(expression))
 {}
 
-void GroupingExpression::Accept(const IVisitor& visitor, IVisitor::IContext* context) const
+void GroupingExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
 {
     visitor.VisitGroupingExpression(*this, context);
 }
@@ -46,7 +47,7 @@ LiteralExpression::LiteralExpression(std::any value)
     : m_value(value)
 {}
 
-void LiteralExpression::Accept(const IVisitor& visitor, IVisitor::IContext* context) const
+void LiteralExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
 {
     visitor.VisitLiteralExpression(*this, context);
 }

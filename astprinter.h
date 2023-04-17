@@ -2,11 +2,12 @@
 
 #include <string>
 #include "expressions.h"
+#include "expressionvisitor.h"
 
 
-struct ASTPrinter : IExpression::IVisitor
+struct ASTPrinter : IExpressionVisitor
 {
-    struct VisitorContext : IExpression::IVisitor::IContext 
+    struct VisitorContext : IExpressionVisitorContext 
     {
         std::string m_result;
     };
@@ -19,19 +20,17 @@ struct ASTPrinter : IExpression::IVisitor
     }
 
 private:
-    virtual void VisitUnaryExpression(const UnaryExpression& unaryExpression, IContext* context) const override
+    virtual void VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const override
     {
-        const IExpression& child = *unaryExpression.m_expression;
-
-        Parenthesize(*context, unaryExpression.m_operator.m_lexeme, {&*unaryExpression.m_expression});
+        Parenthesize(*static_cast<VisitorContext*>(context), unaryExpression.m_operator.m_lexeme, {&*unaryExpression.m_expression});
     }
 
-    virtual void VisitBinaryExpression(const BinaryExpression& binaryExpression, IContext* context) const  override
+    virtual void VisitBinaryExpression(const BinaryExpression& binaryExpression, IExpressionVisitorContext* context) const  override
     {
-        Parenthesize(*context, binaryExpression.m_operator.m_lexeme, {&*binaryExpression.m_left, &*binaryExpression.m_right});        
+        Parenthesize(*static_cast<VisitorContext*>(context), binaryExpression.m_operator.m_lexeme, {&*binaryExpression.m_left, &*binaryExpression.m_right});        
     }
 
-    virtual void VisitTernaryConditionalExpression(const TernaryConditionalExpression& ternaryConditionalExpression, IContext* context) const override
+    virtual void VisitTernaryConditionalExpression(const TernaryConditionalExpression& ternaryConditionalExpression, IExpressionVisitorContext* context) const override
     {
         VisitorContext* visitorContext = static_cast<VisitorContext*>(context);
 
@@ -42,12 +41,12 @@ private:
         ternaryConditionalExpression.m_falseBranch->Accept(*this, context);
     }
 
-    virtual void VisitGroupingExpression(const GroupingExpression& groupingExpression, IContext* context) const override
+    virtual void VisitGroupingExpression(const GroupingExpression& groupingExpression, IExpressionVisitorContext* context) const override
     {
-        Parenthesize(*context, "group", {&*groupingExpression.m_expression});
+        Parenthesize(*static_cast<VisitorContext*>(context), "group", {&*groupingExpression.m_expression});
     }
 
-    virtual void VisitLiteralExpression(const LiteralExpression& literalExpression, IContext* context) const override
+    virtual void VisitLiteralExpression(const LiteralExpression& literalExpression, IExpressionVisitorContext* context) const override
     {
         VisitorContext* visitorContext = static_cast<VisitorContext*>(context);
 
@@ -69,17 +68,16 @@ private:
         }
     }
 
-    void Parenthesize(IContext& context, std::string_view name, std::initializer_list<const IExpression*> expressions) const
+    void Parenthesize(VisitorContext& context, std::string_view name, std::initializer_list<const IExpression*> expressions) const
     {
-        VisitorContext& visitorContext = static_cast<VisitorContext&>(context);
-        visitorContext.m_result.append("(").append(name);
+        context.m_result.append("(").append(name);
 
         for (const IExpression* expression : expressions)
         {
-            visitorContext.m_result.append(" ");
+            context.m_result.append(" ");
             expression->Accept(*this, &context);
         }
 
-        visitorContext.m_result.append(")");
+        context.m_result.append(")");
     }
 };
