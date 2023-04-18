@@ -7,16 +7,38 @@
 #include "scanner.h"
 #include "parser.h"
 #include "astprinter.h"
+#include "interpreter.h"
 
 void run(std::string_view source)
 {
     Scanner scanner(source);
-    
-    for (const Token& token : scanner.Tokens())
-    {
-        std::cout << token << std::endl;
-    }
 
+    Parser parser(scanner.Tokens());
+    if (IExpressionPtr expression = parser.Parse(std::cout))
+    {
+        Interpreter interpreter;
+        std::any result = interpreter.Interpret(*expression, std::cout);
+        if (!result.has_value())
+        {
+            std::cout << "Nil" << std::endl;
+        }
+        else if (const bool* value = std::any_cast<bool>(&result))
+        {
+            std::cout << (*value ? "True" : "False") << std::endl;
+        }
+        else if (const double* value = std::any_cast<double>(&result))
+        {
+            std::cout << *value << std::endl;
+        }
+        else if (const std::string* value = std::any_cast<std::string>(&result))
+        {
+            std::cout << *value << std::endl;
+        }
+        else
+        {
+            std::cerr << "Unknown result type";
+        }
+    }
 }
 
 std::optional<std::string> GetFileContent(const char* filename)

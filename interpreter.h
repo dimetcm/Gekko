@@ -1,12 +1,14 @@
 #pragma once
 
 #include <any>
+#include <iostream>
 #include "expressionvisitor.h"
 
 class IExpression;
 
 struct Interpreter : IExpressionVisitor 
 {
+    std::any Interpret(const IExpression& expression, std::ostream& logOutput) const; 
 private:
     struct Context : IExpressionVisitorContext 
     {

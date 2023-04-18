@@ -80,6 +80,20 @@ static double GetNumberOperand(const Token& token, const std::any& lhs)
     throw InterpreterError(token, "Operand must be a number.");
 }
 
+std::any Interpreter::Interpret(const IExpression& expression, std::ostream& logOutput) const
+{
+    try
+    {
+        return Eval(expression);
+    }
+    catch(const InterpreterError& ie)
+    {
+        logOutput << ie.m_message << "\n[line " << ie.m_operator.m_line << ']';
+    }
+
+    return std::any();    
+}
+
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
 {
     std::any expResult = Eval(*unaryExpression.m_expression);
@@ -139,6 +153,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
                 if (const std::string* rhs = std::any_cast<std::string>(&rightExprResult))
                 {
                     interpreterContext->m_result = *lhs + *rhs;
+                    return;
                 }
                 else
                 {
@@ -171,7 +186,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
         case Token::Type::Greater:      interpreterContext->m_result = lhs > rhs; break;
         case Token::Type::GreaterEqual: interpreterContext->m_result = lhs >= rhs; break;
         }
-    }
+    } break;
     default: throw InterpreterError(binaryExpression.m_operator, "Unsuported binary operator"); break;
     }    
 }
