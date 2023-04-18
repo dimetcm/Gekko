@@ -123,18 +123,57 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
     } break;
 
     case Token::Type::Minus:
+    case Token::Type::Plus:
+    case Token::Type::Slash:
+    case Token::Type::Star:
+    case Token::Type::Less:
+    case Token::Type::LessEqual:
+    case Token::Type::Greater:
+    case Token::Type::GreaterEqual:
     {
+        if (Token::Type::Plus == operatorType)
+        {
+            if (const std::string* lhs = std::any_cast<std::string>(&leftExprResult))
+            {
+                std::any rightExprResult = Eval(*binaryExpression.m_right);
+                if (const std::string* rhs = std::any_cast<std::string>(&rightExprResult))
+                {
+                    interpreterContext->m_result = *lhs + *rhs;
+                }
+                else
+                {
+                    InterpreterError(binaryExpression.m_operator, "Expecting string as right hand operand.");
+                }
+            }
+        }
+
         double lhs = GetNumberOperand(binaryExpression.m_operator, leftExprResult);
 
         std::any rightExprResult = Eval(*binaryExpression.m_right);
 
         double rhs = GetNumberOperand(binaryExpression.m_operator, rightExprResult);
-        interpreterContext->m_result = lhs - rhs;
+
+        switch (operatorType)
+        {
+        case Token::Type::Slash:
+        {
+            if (rhs == 0.0)
+            {
+                InterpreterError(binaryExpression.m_operator, "Division by zero.");
+            }
+            interpreterContext->m_result = lhs / rhs; 
+        } break;
+        case Token::Type::Star:         interpreterContext->m_result = lhs * rhs; break;
+        case Token::Type::Minus:        interpreterContext->m_result = lhs - rhs; break;
+        case Token::Type::Plus:         interpreterContext->m_result = lhs + rhs; break;
+        case Token::Type::Less:         interpreterContext->m_result = lhs < rhs; break;
+        case Token::Type::LessEqual:    interpreterContext->m_result = lhs <= rhs; break;
+        case Token::Type::Greater:      interpreterContext->m_result = lhs > rhs; break;
+        case Token::Type::GreaterEqual: interpreterContext->m_result = lhs >= rhs; break;
+        }
     }
-    
-    default:
-        break;
-    }
+    default: throw InterpreterError(binaryExpression.m_operator, "Unsuported binary operator"); break;
+    }    
 }
 
 void Interpreter::VisitTernaryConditionalExpression(const TernaryConditionalExpression& ternaryConditionalExpression, IExpressionVisitorContext* context) const
