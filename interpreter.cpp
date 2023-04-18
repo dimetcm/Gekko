@@ -88,7 +88,7 @@ std::any Interpreter::Interpret(const IExpression& expression, std::ostream& log
     }
     catch(const InterpreterError& ie)
     {
-        logOutput << ie.m_message << "\n[line " << ie.m_operator.m_line << ']';
+        logOutput << "[line " << ie.m_operator.m_line << "]: " <<  ie.m_message << "\n";
     }
 
     return std::any();    
@@ -157,7 +157,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
                 }
                 else
                 {
-                    InterpreterError(binaryExpression.m_operator, "Expecting string as right hand operand.");
+                    throw InterpreterError(binaryExpression.m_operator, "Expecting string as right hand operand.");
                 }
             }
         }
@@ -174,7 +174,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
         {
             if (rhs == 0.0)
             {
-                InterpreterError(binaryExpression.m_operator, "Division by zero.");
+                throw InterpreterError(binaryExpression.m_operator, "Division by zero.");
             }
             interpreterContext->m_result = lhs / rhs; 
         } break;
