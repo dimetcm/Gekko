@@ -18,7 +18,7 @@ private:
     void ScanTokens();
     void ScanToken();
     void AddToken(Token::Type tokenType);
-    void AddToken(Token::Type tokenType, std::any literalValue);
+    void AddToken(Token::Type tokenType, Value literalValue);
 
     void ScanStringLiteral();
     void ScanNumberLiteral();

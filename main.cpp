@@ -17,27 +17,8 @@ void run(std::string_view source)
     if (IExpressionPtr expression = parser.Parse(std::cout))
     {
         Interpreter interpreter;
-        std::any result = interpreter.Interpret(*expression, std::cout);
-        if (!result.has_value())
-        {
-            std::cout << "Nil" << std::endl;
-        }
-        else if (const bool* value = std::any_cast<bool>(&result))
-        {
-            std::cout << (*value ? "True" : "False") << std::endl;
-        }
-        else if (const double* value = std::any_cast<double>(&result))
-        {
-            std::cout << *value << std::endl;
-        }
-        else if (const std::string* value = std::any_cast<std::string>(&result))
-        {
-            std::cout << *value << std::endl;
-        }
-        else
-        {
-            std::cerr << "Unknown result type";
-        }
+        Value result = interpreter.Interpret(*expression, std::cout);
+        std::cout << result.ToString() << std::endl;
     }
 }
 
@@ -100,8 +81,8 @@ void runTests()
         assert(scanner.Tokens()[1].m_lexeme == "test");
         assert(scanner.Tokens()[2].m_type == Token::Type::Equal);
         assert(scanner.Tokens()[3].m_type == Token::Type::Number);
-        double val = std::any_cast<double>(scanner.Tokens()[3].m_literalvalue);
-        assert(val == 42.7);
+        const double* val = scanner.Tokens()[3].m_literalvalue.GetNumber();
+        assert(val && *val == 42.7);
         assert(scanner.Tokens()[4].m_type == Token::Type::EndOfFile);
     }
 
@@ -119,8 +100,8 @@ void runTests()
         assert(scanner.Tokens()[1].m_lexeme == "someString");
         assert(scanner.Tokens()[2].m_type == Token::Type::Equal);
         assert(scanner.Tokens()[3].m_type == Token::Type::String);
-        std::string val = std::any_cast<std::string>(scanner.Tokens()[3].m_literalvalue);
-        assert(val == "TestString");
+        const std::string* val = scanner.Tokens()[3].m_literalvalue.GetString();
+        assert(val && *val == "TestString");
         assert(scanner.Tokens()[4].m_type == Token::Type::EndOfFile);
 
         Parser parser(scanner.Tokens());        

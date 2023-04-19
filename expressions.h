@@ -1,7 +1,7 @@
 #pragma once
 
-#include <any>
 #include <memory>
+#include "value.h"
 
 struct Token;
 struct IExpressionVisitor;
@@ -60,10 +60,10 @@ struct GroupingExpression : public IExpression
 struct LiteralExpression : public IExpression
 {
     LiteralExpression();
-    explicit LiteralExpression(std::any value);
+    explicit LiteralExpression(Value value);
     
     virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
 
-    std::any m_value;
+    Value m_value;
 };
 

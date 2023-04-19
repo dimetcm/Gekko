@@ -16,7 +16,7 @@ void Scanner::ScanTokens()
         ScanToken();    
     }
 
-    m_tokens.emplace_back(Token::Type::EndOfFile, "", std::any(), m_line);
+    m_tokens.emplace_back(Token::Type::EndOfFile, "", Value(), m_line);
 }
 
 void Scanner::ScanToken()
@@ -107,10 +107,10 @@ void Scanner::ScanToken()
 
 void Scanner::AddToken(Token::Type tokenType)
 {
-    AddToken(tokenType, std::any());
+    AddToken(tokenType, Value());
 }
 
-void Scanner::AddToken(Token::Type tokenType, std::any literalValue)
+void Scanner::AddToken(Token::Type tokenType, Value literalValue)
 {
     std::string_view lexeme = m_source.substr(m_start, m_current-m_start);
     m_tokens.emplace_back(tokenType, lexeme, literalValue, m_line);
@@ -135,7 +135,7 @@ void Scanner::ScanStringLiteral()
     
     Advance(); // closing "
 
-    AddToken(Token::Type::String, std::string(m_source.substr(m_start + 1, m_current - m_start - 2)));
+    AddToken(Token::Type::String, Value(std::string(m_source.substr(m_start + 1, m_current - m_start - 2))));
 }
 
 bool Scanner::IsAtEnd() const
@@ -200,7 +200,7 @@ void Scanner::ScanNumberLiteral()
     double value = 0.0;
     if (std::from_chars(numberStr.data(), numberStr.data() + numberStr.size(), value).ec == std::errc{})
     {
-        AddToken(Token::Type::Number, value);  
+        AddToken(Token::Type::Number, Value(value));  
     }
     else
     {

@@ -125,11 +125,11 @@ IExpressionPtr Parser::Primary()
     const Token& token = m_tokens[m_current++];
     switch (token.m_type)
     {
-    case Token::Type::False:    return std::make_unique<LiteralExpression>(std::make_any<bool>(false)); 
-    case Token::Type::True:     return std::make_unique<LiteralExpression>(std::make_any<bool>(true));
+    case Token::Type::False:    return std::make_unique<LiteralExpression>(Value(false)); 
+    case Token::Type::True:     return std::make_unique<LiteralExpression>(Value(true));
     case Token::Type::Nil:      return std::make_unique<LiteralExpression>();
     case Token::Type::Number:
-    case Token::Type::String:   return std::make_unique<LiteralExpression>(token.m_literalvalue);
+    case Token::Type::String:   return std::make_unique<LiteralExpression>(Value(token.m_literalvalue));
     case Token::Type::OpeningParenthesis:
     {
         IExpressionPtr expression = Expression();

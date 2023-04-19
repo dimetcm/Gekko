@@ -13,29 +13,15 @@ struct InterpreterError : std::exception
     const Token& m_operator;
 };
 
-static bool IsTruthy(const std::any& value)
+static bool AreEqual(const Token& token, const Value& lhs, const Value& rhs)
 {
-    if (!value.has_value())
+    if (!lhs.HasValue())
     {
-        return false;
+        return !rhs.HasValue();
     }
-    else if (const bool* result = std::any_cast<bool>(&value))
+    else if (const bool* leftExpr = lhs.GetBoolean())
     {
-        return *result;
-    }
-
-    return true;
-}
-
-static bool AreEqual(const Token& token, const std::any& lhs, const std::any& rhs)
-{
-    if (!lhs.has_value())
-    {
-        return !rhs.has_value();
-    }
-    else if (const bool* leftExpr = std::any_cast<bool>(&lhs))
-    {
-        if (const bool* rightExpr = std::any_cast<bool>(&rhs))
+        if (const bool* rightExpr = rhs.GetBoolean())
         {
             return *leftExpr == *rightExpr;
         }
@@ -44,9 +30,9 @@ static bool AreEqual(const Token& token, const std::any& lhs, const std::any& rh
             throw InterpreterError(token, "Expecting boolean as right hand operand");
         }
     }
-    else if (const double* leftExpr = std::any_cast<double>(&lhs))
+    else if (const double* leftExpr = lhs.GetNumber())
     {
-        if (const double* rightExpr = std::any_cast<double>(&rhs))
+        if (const double* rightExpr = rhs.GetNumber())
         {
             return *leftExpr == *rightExpr;
         }
@@ -55,9 +41,9 @@ static bool AreEqual(const Token& token, const std::any& lhs, const std::any& rh
             throw InterpreterError(token, "Expecting number as right hand operand");
         }
     }
-    else if (const std::string* leftExpr = std::any_cast<std::string>(&lhs))
+    else if (const std::string* leftExpr = lhs.GetString())
     {
-        if (const std::string* rightExpr = std::any_cast<std::string>(&rhs))
+        if (const std::string* rightExpr = rhs.GetString())
         {
             return *leftExpr == *rightExpr;
         }
@@ -70,9 +56,9 @@ static bool AreEqual(const Token& token, const std::any& lhs, const std::any& rh
     throw InterpreterError(token, "Unsuported left operand type");
 }
 
-static double GetNumberOperand(const Token& token, const std::any& lhs)
+static double GetNumberOperand(const Token& token, const Value& lhs)
 {
-    if (const double* val = std::any_cast<double>(&lhs))
+    if (const double* val = lhs.GetNumber())
     {
         return *val;
     }
@@ -80,7 +66,7 @@ static double GetNumberOperand(const Token& token, const std::any& lhs)
     throw InterpreterError(token, "Operand must be a number.");
 }
 
-std::any Interpreter::Interpret(const IExpression& expression, std::ostream& logOutput) const
+Value Interpreter::Interpret(const IExpression& expression, std::ostream& logOutput) const
 {
     try
     {
@@ -91,25 +77,27 @@ std::any Interpreter::Interpret(const IExpression& expression, std::ostream& log
         logOutput << "[line " << ie.m_operator.m_line << "]: " <<  ie.m_message << "\n";
     }
 
-    return std::any();    
+    return Value();    
 }
 
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
 {
-    std::any expResult = Eval(*unaryExpression.m_expression);
+    Value expResult = Eval(*unaryExpression.m_expression);
 
     Context* interpreterContext = static_cast<Context*>(context);
     if (unaryExpression.m_operator.m_type == Token::Type::Minus)
     {
-        interpreterContext->m_result = -GetNumberOperand(unaryExpression.m_operator, expResult);
+        double number = GetNumberOperand(unaryExpression.m_operator, expResult);
+        interpreterContext->m_result = Value(-number);
     }
     else if (unaryExpression.m_operator.m_type == Token::Type::Plus)
     {
-        interpreterContext->m_result = GetNumberOperand(unaryExpression.m_operator, expResult);
+        double number = GetNumberOperand(unaryExpression.m_operator, expResult);
+        interpreterContext->m_result = Value(number);
     }
     else if (unaryExpression.m_operator.m_type == Token::Type::Bang)
     {
-        interpreterContext->m_result = std::make_any<bool>(!IsTruthy(expResult));
+        interpreterContext->m_result = Value(!expResult.IsTruthy());
     }
     else
     {
@@ -121,7 +109,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
 {
     Context* interpreterContext = static_cast<Context*>(context);
 
-    std::any leftExprResult = Eval(*binaryExpression.m_left);
+    Value leftExprResult = Eval(*binaryExpression.m_left);
 
     Token::Type operatorType = binaryExpression.m_operator.m_type;
 
@@ -130,10 +118,10 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
     case Token::Type::EqualEqual:
     case Token::Type::BangEqual:
     {
-        std::any rightExprResult = Eval(*binaryExpression.m_right);
+        Value rightExprResult = Eval(*binaryExpression.m_right);
 
         bool result = AreEqual(binaryExpression.m_operator, leftExprResult, rightExprResult);
-        interpreterContext->m_result = std::make_any<bool>(operatorType == Token::Type::EqualEqual ? result : !result);        
+        interpreterContext->m_result = Value(operatorType == Token::Type::EqualEqual ? result : !result);        
     } break;
 
     case Token::Type::Minus:
@@ -147,12 +135,12 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
     {
         if (Token::Type::Plus == operatorType)
         {
-            if (const std::string* lhs = std::any_cast<std::string>(&leftExprResult))
+            if (const std::string* lhs = leftExprResult.GetString())
             {
-                std::any rightExprResult = Eval(*binaryExpression.m_right);
-                if (const std::string* rhs = std::any_cast<std::string>(&rightExprResult))
+                Value rightExprResult = Eval(*binaryExpression.m_right);
+                if (const std::string* rhs = rightExprResult.GetString())
                 {
-                    interpreterContext->m_result = *lhs + *rhs;
+                    interpreterContext->m_result = Value(*lhs + *rhs);
                     return;
                 }
                 else
@@ -164,7 +152,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
 
         double lhs = GetNumberOperand(binaryExpression.m_operator, leftExprResult);
 
-        std::any rightExprResult = Eval(*binaryExpression.m_right);
+        Value rightExprResult = Eval(*binaryExpression.m_right);
 
         double rhs = GetNumberOperand(binaryExpression.m_operator, rightExprResult);
 
@@ -176,15 +164,15 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
             {
                 throw InterpreterError(binaryExpression.m_operator, "Division by zero.");
             }
-            interpreterContext->m_result = lhs / rhs; 
+            interpreterContext->m_result = Value(lhs / rhs); 
         } break;
-        case Token::Type::Star:         interpreterContext->m_result = lhs * rhs; break;
-        case Token::Type::Minus:        interpreterContext->m_result = lhs - rhs; break;
-        case Token::Type::Plus:         interpreterContext->m_result = lhs + rhs; break;
-        case Token::Type::Less:         interpreterContext->m_result = lhs < rhs; break;
-        case Token::Type::LessEqual:    interpreterContext->m_result = lhs <= rhs; break;
-        case Token::Type::Greater:      interpreterContext->m_result = lhs > rhs; break;
-        case Token::Type::GreaterEqual: interpreterContext->m_result = lhs >= rhs; break;
+        case Token::Type::Star:         interpreterContext->m_result = Value(lhs * rhs); break;
+        case Token::Type::Minus:        interpreterContext->m_result = Value(lhs - rhs); break;
+        case Token::Type::Plus:         interpreterContext->m_result = Value(lhs + rhs); break;
+        case Token::Type::Less:         interpreterContext->m_result = Value(lhs < rhs); break;
+        case Token::Type::LessEqual:    interpreterContext->m_result = Value(lhs <= rhs); break;
+        case Token::Type::Greater:      interpreterContext->m_result = Value(lhs > rhs); break;
+        case Token::Type::GreaterEqual: interpreterContext->m_result = Value(lhs >= rhs); break;
         }
     } break;
     default: throw InterpreterError(binaryExpression.m_operator, "Unsuported binary operator"); break;
@@ -193,8 +181,8 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
 
 void Interpreter::VisitTernaryConditionalExpression(const TernaryConditionalExpression& ternaryConditionalExpression, IExpressionVisitorContext* context) const
 {
-    std::any conditionResult = Eval(*ternaryConditionalExpression.m_condition);
-    if (IsTruthy(conditionResult))
+    Value conditionResult = Eval(*ternaryConditionalExpression.m_condition);
+    if (conditionResult.IsTruthy())
     {
         ternaryConditionalExpression.m_trueBranch->Accept(*this, context);
     }
@@ -215,7 +203,7 @@ void Interpreter::VisitLiteralExpression(const LiteralExpression& literalExpress
     interpreterContext->m_result = literalExpression.m_value; 
 }
 
-std::any Interpreter::Eval(const IExpression& expression) const
+Value Interpreter::Eval(const IExpression& expression) const
 {
     Context result;
     expression.Accept(*this, &result);

@@ -62,11 +62,11 @@ std::ostream& operator<<(std::ostream& os, const Token& token)
     os << TokenTypeToStringView(token.m_type) << " " << token.m_lexeme;
     if (token.m_type == Token::Type::Number)
     {
-        os << " " << std::any_cast<double>(token.m_literalvalue);
+        os << " " << *token.m_literalvalue.GetNumber();
     }
     else if (token.m_type == Token::Type::String)
     {
-        os << " " << std::any_cast<std::string_view>(token.m_literalvalue);
+        os << " " << *token.m_literalvalue.GetString();
     }
 
     return os;

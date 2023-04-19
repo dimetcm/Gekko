@@ -46,7 +46,7 @@ void GroupingExpression::Accept(const IExpressionVisitor& visitor, IExpressionVi
 LiteralExpression::LiteralExpression()
 {}
 
-LiteralExpression::LiteralExpression(std::any value)
+LiteralExpression::LiteralExpression(Value value)
     : m_value(value)
 {}
 

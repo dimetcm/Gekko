@@ -50,22 +50,7 @@ private:
     {
         VisitorContext* visitorContext = static_cast<VisitorContext*>(context);
 
-        if (!literalExpression.m_value.has_value())
-        {
-            visitorContext->m_result.append("nil");
-        }
-        else  if (const double* value = std::any_cast<double>(&literalExpression.m_value))
-        {
-            visitorContext->m_result.append(std::to_string(*value));
-        }
-        else if (const std::string* value = std::any_cast<std::string>(&literalExpression.m_value))
-        {
-            visitorContext->m_result.append(*value);
-        }
-        else if (const bool* value = std::any_cast<bool>(&literalExpression.m_value))
-        {
-            visitorContext->m_result.append(*value ? "true" : "false");
-        }
+        visitorContext->m_result.append(literalExpression.m_value.ToString());
     }
 
     void Parenthesize(VisitorContext& context, std::string_view name, std::initializer_list<const IExpression*> expressions) const

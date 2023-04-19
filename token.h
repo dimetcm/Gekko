@@ -1,7 +1,7 @@
 #pragma once
 
 #include <ostream>
-#include <any>
+#include "value.h"
 
 struct Token
 {
@@ -56,7 +56,7 @@ struct Token
         EndOfFile
     };
 
-    Token(Type type, std::string_view lexeme, std::any literalValue, int line)
+    Token(Type type, std::string_view lexeme, Value literalValue, int line)
         : m_type(type)
         , m_lexeme(lexeme)
         , m_literalvalue(literalValue)
@@ -65,7 +65,7 @@ struct Token
 
     Type m_type;
     std::string_view m_lexeme;
-    std::any m_literalvalue;
+    Value m_literalvalue;
     int m_line;
 };
 
