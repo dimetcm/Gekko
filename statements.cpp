@@ -1,0 +1,21 @@
+#include "statements.h"
+#include "expressions.h"
+#include "statementvisitor.h"
+
+ExpressionStatement::ExpressionStatement(IExpressionPtr expression)
+    : m_expression(std::move(expression))
+{}
+
+void ExpressionStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitExpressionStatement(*this, context);
+}
+
+PrintStatement::PrintStatement(IExpressionPtr expression)
+    : m_expression(std::move(expression))
+{}
+
+void PrintStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitPrintStatement(*this, context);
+}
