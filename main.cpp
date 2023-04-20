@@ -160,6 +160,41 @@ void runTests()
 
         std::cout << std::endl;
     }
+
+    { // interpreter tests
+        {
+            Scanner scanner("2 * 10 - 1 + 3");
+            Parser parser(scanner.Tokens());
+            IExpressionPtr expression = parser.Parse(std::cerr);
+            assert(expression);
+            Interpreter interpreter;
+            Value result = interpreter.Interpret(*expression, std::cerr);
+
+            assert(result.GetNumber() && *result.GetNumber() == 22);
+        }
+
+        {
+            Scanner scanner("(1 + 3) * 2 == 8");
+            Parser parser(scanner.Tokens());
+            IExpressionPtr expression = parser.Parse(std::cerr);
+            assert(expression);
+            Interpreter interpreter;
+            Value result = interpreter.Interpret(*expression, std::cerr);
+
+            assert(result.GetBoolean() && *result.GetBoolean());
+        }
+
+        {
+            Scanner scanner("1/8 > 8");
+            Parser parser(scanner.Tokens());
+            IExpressionPtr expression = parser.Parse(std::cerr);
+            assert(expression);
+            Interpreter interpreter;
+            Value result = interpreter.Interpret(*expression, std::cerr);
+
+            assert(result.GetBoolean() && !*result.GetBoolean());
+        }
+    }
 }
 
 int main(int argc, char* argv[])
