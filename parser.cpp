@@ -93,13 +93,7 @@ IExpressionPtr Parser::ParseExpression()
 
 IExpressionPtr Parser::ParseComma()
 {
-    IExpressionPtr expression = ParseTernaryConditional();
-    if (Match(Token::Type::Comma))
-    {
-        ++m_current;
-        return ParseExpression();
-    }
-    return expression;
+    return ParseBinaryExpression(std::bind(&Parser::ParseTernaryConditional, this), {Token::Type::Comma});
 }
 
 IExpressionPtr Parser::ParseTernaryConditional()
