@@ -3,6 +3,23 @@
 #include "token.h"
 #include "statements.h"
 
+void Interpreter::Environment::Define(std::string_view name, const Value& value)
+{
+     m_values.insert_or_assign(name, value);
+}
+
+const Value* Interpreter::Environment::GetValue(std::string_view name) const
+{
+    auto it = m_values.find(name);
+    if (it != m_values.end())
+    {
+        return &it->second;
+    }
+
+    return nullptr;
+}
+
+
 bool Interpreter::AreEqual(const Token& token, const Value& lhs, const Value& rhs)
 {
     if (!lhs.HasValue())
@@ -60,9 +77,10 @@ void Interpreter::Interpret(const std::vector<IStatementPtr>& program, std::ostr
 {
     try
     {
+        Environment environment;
         for (const IStatementPtr& statement : program)
         {
-            Execute(*statement);
+            Execute(*statement, environment);
         }
     }
     catch(const InterpreterError& ie)
@@ -82,24 +100,37 @@ void Interpreter::VisitPrintStatement(const PrintStatement& statement, IStatemen
     std::cout << value.ToString() << std::endl;
 }
 
+void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationStatement& statement, IStatementVisitorContext* context) const
+{
+    Value value;
+    if (statement.m_initializer)
+    {
+        value = Eval(*statement.m_initializer);
+    }
+
+    Environment* environment = static_cast<Environment*>(context);
+    environment->Define(statement.m_name.m_lexeme, value);
+}
+
+
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
 {
     Value expResult = Eval(*unaryExpression.m_expression);
 
-    Context* interpreterContext = static_cast<Context*>(context);
+    ExpressionResult* result = static_cast<ExpressionResult*>(context);
     if (unaryExpression.m_operator.m_type == Token::Type::Minus)
     {
         double number = GetNumberOperand(unaryExpression.m_operator, expResult);
-        interpreterContext->m_result = Value(-number);
+        result->m_result = Value(-number);
     }
     else if (unaryExpression.m_operator.m_type == Token::Type::Plus)
     {
         double number = GetNumberOperand(unaryExpression.m_operator, expResult);
-        interpreterContext->m_result = Value(number);
+        result->m_result = Value(number);
     }
     else if (unaryExpression.m_operator.m_type == Token::Type::Bang)
     {
-        interpreterContext->m_result = Value(!expResult.IsTruthy());
+        result->m_result = Value(!expResult.IsTruthy());
     }
     else
     {
@@ -109,7 +140,7 @@ void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, I
 
 void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression, IExpressionVisitorContext* context) const
 {
-    Context* interpreterContext = static_cast<Context*>(context);
+    ExpressionResult* exprResult = static_cast<ExpressionResult*>(context);
 
     Value leftExprResult = Eval(*binaryExpression.m_left);
 
@@ -123,7 +154,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
         Value rightExprResult = Eval(*binaryExpression.m_right);
 
         bool result = AreEqual(binaryExpression.m_operator, leftExprResult, rightExprResult);
-        interpreterContext->m_result = Value(operatorType == Token::Type::EqualEqual ? result : !result);        
+        exprResult->m_result = Value(operatorType == Token::Type::EqualEqual ? result : !result);        
     } break;
 
     case Token::Type::Minus:
@@ -142,7 +173,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
                 Value rightExprResult = Eval(*binaryExpression.m_right);
                 if (const std::string* rhs = rightExprResult.GetString())
                 {
-                    interpreterContext->m_result = Value(*lhs + *rhs);
+                    exprResult->m_result = Value(*lhs + *rhs);
                     return;
                 }
                 else
@@ -166,15 +197,15 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
             {
                 throw InterpreterError(binaryExpression.m_operator, "Division by zero.");
             }
-            interpreterContext->m_result = Value(lhs / rhs); 
+            exprResult->m_result = Value(lhs / rhs); 
         } break;
-        case Token::Type::Star:         interpreterContext->m_result = Value(lhs * rhs); break;
-        case Token::Type::Minus:        interpreterContext->m_result = Value(lhs - rhs); break;
-        case Token::Type::Plus:         interpreterContext->m_result = Value(lhs + rhs); break;
-        case Token::Type::Less:         interpreterContext->m_result = Value(lhs < rhs); break;
-        case Token::Type::LessEqual:    interpreterContext->m_result = Value(lhs <= rhs); break;
-        case Token::Type::Greater:      interpreterContext->m_result = Value(lhs > rhs); break;
-        case Token::Type::GreaterEqual: interpreterContext->m_result = Value(lhs >= rhs); break;
+        case Token::Type::Star:         exprResult->m_result = Value(lhs * rhs); break;
+        case Token::Type::Minus:        exprResult->m_result = Value(lhs - rhs); break;
+        case Token::Type::Plus:         exprResult->m_result = Value(lhs + rhs); break;
+        case Token::Type::Less:         exprResult->m_result = Value(lhs < rhs); break;
+        case Token::Type::LessEqual:    exprResult->m_result = Value(lhs <= rhs); break;
+        case Token::Type::Greater:      exprResult->m_result = Value(lhs > rhs); break;
+        case Token::Type::GreaterEqual: exprResult->m_result = Value(lhs >= rhs); break;
         }
     } break;
     default: throw InterpreterError(binaryExpression.m_operator, "Unsuported binary operator"); break;
@@ -201,19 +232,18 @@ void Interpreter::VisitGroupingExpression(const GroupingExpression& groupingExpr
 
 void Interpreter::VisitLiteralExpression(const LiteralExpression& literalExpression, IExpressionVisitorContext* context) const
 {
-    Context* interpreterContext = static_cast<Context*>(context);
-    interpreterContext->m_result = literalExpression.m_value; 
+    ExpressionResult* result = static_cast<ExpressionResult*>(context);
+    result->m_result = literalExpression.m_value; 
 }
 
-void Interpreter::Execute(const IStatement& statement) const
+void Interpreter::Execute(const IStatement& statement, Environment& environment) const
 {
-    Context context;
-    statement.Accept(*this, &context);
+    statement.Accept(*this, &environment);
 }
 
 Value Interpreter::Eval(const IExpression& expression) const
 {
-    Context result;
+    ExpressionResult result;
     expression.Accept(*this, &result);
     return result.m_result;
 }

@@ -19,3 +19,13 @@ void PrintStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorC
 {
     visitor.VisitPrintStatement(*this, context);
 }
+
+VariableDeclarationStatement::VariableDeclarationStatement(const Token& name, IExpressionPtr initializer)
+    : m_name(name)
+    , m_initializer(std::move(initializer))
+{}
+
+void VariableDeclarationStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitVariableDeclarationStatement(*this, context);
+}
