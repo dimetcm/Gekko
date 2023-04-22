@@ -1,19 +1,9 @@
 #include "interpreter.h"
 #include "expressions.h"
 #include "token.h"
+#include "statements.h"
 
-struct InterpreterError : std::exception
-{
-    InterpreterError(const Token& op, std::string message)
-        : m_operator(op)
-        , m_message(std::move(message))
-    {}
-
-    std::string m_message;
-    const Token& m_operator;
-};
-
-static bool AreEqual(const Token& token, const Value& lhs, const Value& rhs)
+bool Interpreter::AreEqual(const Token& token, const Value& lhs, const Value& rhs)
 {
     if (!lhs.HasValue())
     {
@@ -56,7 +46,7 @@ static bool AreEqual(const Token& token, const Value& lhs, const Value& rhs)
     throw InterpreterError(token, "Unsuported left operand type");
 }
 
-static double GetNumberOperand(const Token& token, const Value& lhs)
+double Interpreter::GetNumberOperand(const Token& token, const Value& lhs)
 {
     if (const double* val = lhs.GetNumber())
     {
@@ -66,18 +56,30 @@ static double GetNumberOperand(const Token& token, const Value& lhs)
     throw InterpreterError(token, "Operand must be a number.");
 }
 
-Value Interpreter::Interpret(const IExpression& expression, std::ostream& logOutput) const
+void Interpreter::Interpret(const std::vector<IStatementPtr>& program, std::ostream& logOutput) const
 {
     try
     {
-        return Eval(expression);
+        for (const IStatementPtr& statement : program)
+        {
+            Execute(*statement);
+        }
     }
     catch(const InterpreterError& ie)
     {
         logOutput << "[line " << ie.m_operator.m_line << "]: " <<  ie.m_message << "\n";
     }
+}
 
-    return Value();    
+void Interpreter::VisitExpressionStatement(const ExpressionStatement& statement, IStatementVisitorContext* context) const
+{
+    Eval(*statement.m_expression);
+}
+
+void Interpreter::VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const
+{
+    Value value = Eval(*statement.m_expression);
+    std::cout << value.ToString() << std::endl;
 }
 
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
@@ -201,6 +203,12 @@ void Interpreter::VisitLiteralExpression(const LiteralExpression& literalExpress
 {
     Context* interpreterContext = static_cast<Context*>(context);
     interpreterContext->m_result = literalExpression.m_value; 
+}
+
+void Interpreter::Execute(const IStatement& statement) const
+{
+    Context context;
+    statement.Accept(*this, &context);
 }
 
 Value Interpreter::Eval(const IExpression& expression) const

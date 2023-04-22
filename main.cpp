@@ -7,19 +7,19 @@
 #include "scanner.h"
 #include "parser.h"
 #include "astprinter.h"
-#include "interpreter.h"
+#include "statements.h"
+#include "expressions.h"
+#include "mocks/mockedinterpreter.h"
+#include "mocks/mockedparser.h"
 
 void run(std::string_view source)
 {
     Scanner scanner(source);
 
     Parser parser(scanner.Tokens());
-    if (IExpressionPtr expression = parser.Parse(std::cout))
-    {
-        Interpreter interpreter;
-        Value result = interpreter.Interpret(*expression, std::cout);
-        std::cout << result.ToString() << std::endl;
-    }
+    std::vector<IStatementPtr> program = parser.Parse(std::cout);
+    Interpreter interpreter;
+    interpreter.Interpret(program, std::cout);
 }
 
 std::optional<std::string> GetFileContent(const char* filename)
@@ -103,71 +103,15 @@ void runTests()
         const std::string* val = scanner.Tokens()[3].m_literalvalue.GetString();
         assert(val && *val == "TestString");
         assert(scanner.Tokens()[4].m_type == Token::Type::EndOfFile);
-
-        Parser parser(scanner.Tokens());        
-        if (IExpressionPtr expression = parser.Parse(std::cerr))
-        {
-            ASTPrinter printer;
-            std::cout << printer.ToString(*expression);
-        }
-    }
-
-    {   // comma test
-        Scanner scanner("42.7, (7 + 8) * 20, true");
-        for (const Token& token : scanner.Tokens())
-        {
-            std::cout << token << std::endl;
-        }
-
-        Parser parser(scanner.Tokens());        
-        if (IExpressionPtr expression = parser.Parse(std::cerr))
-        {
-            ASTPrinter printer;
-            std::cout << printer.ToString(*expression);
-        }
-    }
-
-    {   // ternary conditional
-        Scanner scanner("2 + 2 == 4 ? true : false");
-        for (const Token& token : scanner.Tokens())
-        {
-            std::cout << token << std::endl;
-        }
-
-        Parser parser(scanner.Tokens());        
-        if (IExpressionPtr expression = parser.Parse(std::cerr))
-        {
-            ASTPrinter printer;
-            std::cout << printer.ToString(*expression);
-        }
-
-        std::cout << std::endl;
-    }
-
-    {   // broken binary expression
-        Scanner scanner("== 5 + 7");
-        for (const Token& token : scanner.Tokens())
-        {
-            std::cout << token << std::endl;
-        }
-
-        Parser parser(scanner.Tokens());        
-        if (IExpressionPtr expression = parser.Parse(std::cerr))
-        {
-            ASTPrinter printer;
-            std::cout << printer.ToString(*expression);
-        }
-
-        std::cout << std::endl;
     }
 
     { // interpreter tests
         {
             Scanner scanner("2 * 10 - 1 + 3");
-            Parser parser(scanner.Tokens());
-            IExpressionPtr expression = parser.Parse(std::cerr);
+            MockedParser parser(scanner.Tokens());
+            IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
-            Interpreter interpreter;
+            MockedInterpreter interpreter;
             Value result = interpreter.Interpret(*expression, std::cerr);
 
             assert(result.GetNumber() && *result.GetNumber() == 22);
@@ -175,10 +119,10 @@ void runTests()
 
         {
             Scanner scanner("(1 + 3) * 2 == 8");
-            Parser parser(scanner.Tokens());
-            IExpressionPtr expression = parser.Parse(std::cerr);
+            MockedParser parser(scanner.Tokens());
+            IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
-            Interpreter interpreter;
+            MockedInterpreter interpreter;
             Value result = interpreter.Interpret(*expression, std::cerr);
 
             assert(result.GetBoolean() && *result.GetBoolean());
@@ -186,10 +130,10 @@ void runTests()
 
         {
             Scanner scanner("1/8 > 8");
-            Parser parser(scanner.Tokens());
-            IExpressionPtr expression = parser.Parse(std::cerr);
+            MockedParser parser(scanner.Tokens());
+            IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
-            Interpreter interpreter;
+            MockedInterpreter interpreter;
             Value result = interpreter.Interpret(*expression, std::cerr);
 
             assert(result.GetBoolean() && !*result.GetBoolean());

@@ -7,15 +7,18 @@
 class IExpression;
 using IExpressionPtr = std::unique_ptr<const IExpression>;
 
-// consumes an array of tokens and builds an expression out of them.
+struct IStatement;
+using IStatementPtr = std::unique_ptr<const IStatement>;
+
+// consumes an array of tokens and produces a programm (for now an array of statements).
 // uses recursive descent for it. 
 class Parser
 {
 public:
     Parser(const std::vector<Token>& tokens);
 
-    IExpressionPtr Parse(std::ostream& logOutput);
-private:
+    std::vector<IStatementPtr> Parse(std::ostream& logOutput);
+protected:
     struct ParseError : std::exception
     {
         ParseError(const Token& token, std::string message)
@@ -32,19 +35,24 @@ private:
     IExpressionPtr ParseBinaryExpression(std::function<IExpressionPtr()> exprFunc, std::initializer_list<Token::Type> tokenTypes);
     bool MatchAny(std::initializer_list<Token::Type> tokenTypes) const;
     bool Match(Token::Type tokenType) const;
-    bool CanBeUnary(Token::Type tokenType) const;
- 
-    IExpressionPtr Expression();
-    IExpressionPtr Comma();
-    IExpressionPtr TernaryConditional();
-    IExpressionPtr Equality();
-    IExpressionPtr Comparison();
-    IExpressionPtr Term();
-    IExpressionPtr Factor();
-    IExpressionPtr Unary();
-    IExpressionPtr Primary();
+    void Consume(Token::Type tokenType, std::string&& errorMessage);
 
-private:
+    bool CanBeUnary(Token::Type tokenType) const;
+    const Token& CurrentToken() const;
+ 
+    IStatementPtr ParseStatement();
+    IStatementPtr ParsePrintStatement();
+    IStatementPtr ParseExpressionStatement();
+    IExpressionPtr ParseExpression();
+    IExpressionPtr ParseComma();
+    IExpressionPtr ParseTernaryConditional();
+    IExpressionPtr ParseEquality();
+    IExpressionPtr ParseComparison();
+    IExpressionPtr ParseTerm();
+    IExpressionPtr ParseFactor();
+    IExpressionPtr ParseUnary();
+    IExpressionPtr ParsePrimary();
+
     int m_current = 0;
     const std::vector<Token>& m_tokens; 
 };

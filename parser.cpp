@@ -1,16 +1,23 @@
 #include "parser.h"
+#include "statements.h"
 #include "expressions.h"
 #include "gekko.h"
+#include <assert.h>
 
 Parser::Parser(const std::vector<Token>& tokens)
     : m_tokens(tokens)
 {}
 
-IExpressionPtr Parser::Parse(std::ostream& logOutput)
+std::vector<IStatementPtr> Parser::Parse(std::ostream& logOutput)
 {
+    std::vector<IStatementPtr> programme;
+
     try
     {
-        return Expression();
+        while (!Match(Token::Type::EndOfFile))
+        {
+           programme.push_back(ParseStatement());
+        }
     }
     catch(const ParseError& pe)
     {
@@ -28,7 +35,7 @@ IExpressionPtr Parser::Parse(std::ostream& logOutput)
         logOutput << e.what() << '\n';
     }
 
-    return nullptr;
+    return programme;
 }
 
 IExpressionPtr Parser::ParseBinaryExpression(std::function<IExpressionPtr()> exprFunc, std::initializer_list<Token::Type> tokenTypes)
@@ -55,29 +62,59 @@ IExpressionPtr Parser::ParseBinaryExpression(std::function<IExpressionPtr()> exp
     return left;
 }
 
-IExpressionPtr Parser::Expression()
+IStatementPtr Parser::ParseStatement()
 {
-    return Comma();
-} 
-
-IExpressionPtr Parser::Comma()
-{
-    return TernaryConditional();
+    return Match(Token::Type::Print) ? ParsePrintStatement() : ParseExpressionStatement();
 }
 
-IExpressionPtr Parser::TernaryConditional()
+IStatementPtr Parser::ParsePrintStatement()
 {
-    IExpressionPtr expression = Equality();
+    assert(Match(Token::Type::Print));
+    ++m_current; // consume print
+
+    IExpressionPtr value = ParseExpression();
+    Consume(Token::Type::Semicolon, "Expect ';' after value.");
+
+    return std::make_unique<PrintStatement>(std::move(value));
+}
+
+IStatementPtr Parser::ParseExpressionStatement()
+{
+    IExpressionPtr expression = ParseExpression();
+    Consume(Token::Type::Semicolon, "Expect ';' after expression.");
+    
+    return std::make_unique<ExpressionStatement>(std::move(expression));
+}
+
+IExpressionPtr Parser::ParseExpression()
+{
+    return ParseComma();
+} 
+
+IExpressionPtr Parser::ParseComma()
+{
+    IExpressionPtr expression = ParseTernaryConditional();
+    if (Match(Token::Type::Comma))
+    {
+        ++m_current;
+        return ParseExpression();
+    }
+    return expression;
+}
+
+IExpressionPtr Parser::ParseTernaryConditional()
+{
+    IExpressionPtr expression = ParseEquality();
 
     while (Match(Token::Type::Questionmark))
     {
         ++m_current; // consume questionmark
-        IExpressionPtr trueBranch = Expression();
+        IExpressionPtr trueBranch = ParseExpression();
 
         if (Match(Token::Type::Colon))
         {
             ++m_current; // consume colon
-            IExpressionPtr falseBranch = Expression();
+            IExpressionPtr falseBranch = ParseExpression();
             expression = std::make_unique<TernaryConditionalExpression>(std::move(expression), std::move(trueBranch), std::move(falseBranch));
         }
         else
@@ -89,38 +126,38 @@ IExpressionPtr Parser::TernaryConditional()
     return expression;
 }
 
-IExpressionPtr Parser::Equality()
+IExpressionPtr Parser::ParseEquality()
 {
-    return ParseBinaryExpression(std::bind(&Parser::Comparison, this), {Token::Type::BangEqual, Token::Type::EqualEqual});
+    return ParseBinaryExpression(std::bind(&Parser::ParseComparison, this), {Token::Type::BangEqual, Token::Type::EqualEqual});
 } 
 
-IExpressionPtr Parser::Comparison()
+IExpressionPtr Parser::ParseComparison()
 {    
-    return ParseBinaryExpression(std::bind(&Parser::Term, this), {Token::Type::Greater, Token::Type::GreaterEqual, Token::Type::LessEqual, Token::Type::Less});
+    return ParseBinaryExpression(std::bind(&Parser::ParseTerm, this), {Token::Type::Greater, Token::Type::GreaterEqual, Token::Type::LessEqual, Token::Type::Less});
 } 
 
-IExpressionPtr Parser::Term()
+IExpressionPtr Parser::ParseTerm()
 {
-    return ParseBinaryExpression(std::bind(&Parser::Factor, this), {Token::Type::Minus, Token::Type::Plus});
+    return ParseBinaryExpression(std::bind(&Parser::ParseFactor, this), {Token::Type::Minus, Token::Type::Plus});
 }
 
-IExpressionPtr Parser::Factor()
+IExpressionPtr Parser::ParseFactor()
 {
-    return ParseBinaryExpression(std::bind(&Parser::Unary, this), {Token::Type::Slash, Token::Type::Star});
+    return ParseBinaryExpression(std::bind(&Parser::ParseUnary, this), {Token::Type::Slash, Token::Type::Star});
 }
 
-IExpressionPtr Parser::Unary()
+IExpressionPtr Parser::ParseUnary()
 {
     if (MatchAny({Token::Type::Bang, Token::Type::Minus}))
     {
         const Token& op = m_tokens[m_current++];
-        return std::make_unique<UnaryExpression>(op, Unary());
+        return std::make_unique<UnaryExpression>(op, ParseUnary());
     }
 
-    return Primary();
+    return ParsePrimary();
 }
 
-IExpressionPtr Parser::Primary()
+IExpressionPtr Parser::ParsePrimary()
 {
     const Token& token = m_tokens[m_current++];
     switch (token.m_type)
@@ -132,7 +169,7 @@ IExpressionPtr Parser::Primary()
     case Token::Type::String:   return std::make_unique<LiteralExpression>(Value(token.m_literalvalue));
     case Token::Type::OpeningParenthesis:
     {
-        IExpressionPtr expression = Expression();
+        IExpressionPtr expression = ParseExpression();
         if (Match(Token::Type::ClosingParenthesis))
         {
             ++m_current; // consume ClosingParenthesis
@@ -163,6 +200,18 @@ bool Parser::MatchAny(std::initializer_list<Token::Type> tokenTypes) const
 bool Parser::Match(Token::Type tokenType) const
 {
     return m_tokens[m_current].m_type == tokenType;
+}
+
+void Parser::Consume(Token::Type tokenType, std::string&& errorMessage)
+{
+    if (Match(tokenType))
+    {
+        ++m_current;
+    }
+    else
+    {
+        throw ParseError(m_tokens[m_current], errorMessage);
+    }
 }
 
 bool Parser::CanBeUnary(Token::Type tokenType) const

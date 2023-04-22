@@ -6,6 +6,7 @@ struct IStatementVisitorContext
 };
 
 struct ExpressionStatement;
+struct PrintStatement;
 
 struct IStatementVisitor
 {
