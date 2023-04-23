@@ -16,7 +16,7 @@ std::vector<IStatementPtr> Parser::Parse(std::ostream& logOutput)
     {
         while (!Match(Token::Type::EndOfFile))
         {
-           programme.push_back(ParseStatement());
+           programme.push_back(ParseDeclaration());
         }
     }
     catch(const ParseError& pe)
@@ -29,6 +29,8 @@ std::vector<IStatementPtr> Parser::Parse(std::ostream& logOutput)
         {
             Gekko::ReportError(pe.m_token.m_line, " at '" + std::string(pe.m_token.m_lexeme) + "'", pe.m_message);
         }
+
+        Synchronize();
     }
     catch(const std::exception& e)
     {
@@ -60,6 +62,31 @@ IExpressionPtr Parser::ParseBinaryExpression(std::function<IExpressionPtr()> exp
     }
     
     return left;
+}
+
+IStatementPtr Parser::ParseDeclaration()
+{
+    if (Match(Token::Type::Var))
+    {
+        ++m_current;
+        return ParseVariableDeclaration();
+    }
+
+    return ParseStatement();
+}
+
+IStatementPtr Parser::ParseVariableDeclaration()
+{
+    const Token& name = Consume(Token::Type::Identifier, "Expect variable name.");
+
+    IExpressionPtr initializer;
+    if (Match(Token::Type::Equal))
+    {
+        initializer = ParseExpression();
+    }
+
+    Consume(Token::Type::Semicolon, "Expect ';' after variable declaration.");
+    return std::make_unique<VariableDeclarationStatement>(name, std::move(initializer));
 }
 
 IStatementPtr Parser::ParseStatement()
@@ -196,11 +223,11 @@ bool Parser::Match(Token::Type tokenType) const
     return m_tokens[m_current].m_type == tokenType;
 }
 
-void Parser::Consume(Token::Type tokenType, std::string&& errorMessage)
+const Token& Parser::Consume(Token::Type tokenType, std::string&& errorMessage)
 {
     if (Match(tokenType))
     {
-        ++m_current;
+        return m_tokens[m_current++];
     }
     else
     {
@@ -211,4 +238,27 @@ void Parser::Consume(Token::Type tokenType, std::string&& errorMessage)
 bool Parser::CanBeUnary(Token::Type tokenType) const
 {
     return tokenType == Token::Type::Minus || tokenType == Token::Type::Plus;
+}
+
+void Parser::Synchronize()
+{
+    while (m_tokens[m_current].m_type != Token::Type::EndOfFile) 
+    {
+        if (m_tokens[m_current++].m_type == Token::Type::Semicolon)
+        {
+            return;
+        }
+
+        switch (m_tokens[m_current].m_type)
+        {
+        case Token::Type::Class:
+        case Token::Type::Fun:
+        case Token::Type::Var:
+        case Token::Type::For:
+        case Token::Type::If:
+        case Token::Type::While:
+        case Token::Type::Print:
+        case Token::Type::Return: return;
+        }
+    }
 }

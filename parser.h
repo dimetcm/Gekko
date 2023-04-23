@@ -35,11 +35,13 @@ protected:
     IExpressionPtr ParseBinaryExpression(std::function<IExpressionPtr()> exprFunc, std::initializer_list<Token::Type> tokenTypes);
     bool MatchAny(std::initializer_list<Token::Type> tokenTypes) const;
     bool Match(Token::Type tokenType) const;
-    void Consume(Token::Type tokenType, std::string&& errorMessage);
+    const Token& Consume(Token::Type tokenType, std::string&& errorMessage);
 
     bool CanBeUnary(Token::Type tokenType) const;
     const Token& CurrentToken() const;
  
+    IStatementPtr ParseDeclaration();
+    IStatementPtr ParseVariableDeclaration();
     IStatementPtr ParseStatement();
     IStatementPtr ParsePrintStatement();
     IStatementPtr ParseExpressionStatement();
@@ -52,6 +54,9 @@ protected:
     IExpressionPtr ParseFactor();
     IExpressionPtr ParseUnary();
     IExpressionPtr ParsePrimary();
+
+    void Synchronize();
+
 
     int m_current = 0;
     const std::vector<Token>& m_tokens; 
