@@ -8,7 +8,8 @@ struct MockedInterpreter : Interpreter
     {
         try
         {
-            return Eval(expression);
+            Environment environment;
+            return Eval(expression, environment);
         }
         catch(const InterpreterError& ie)
         {

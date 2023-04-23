@@ -54,3 +54,12 @@ void LiteralExpression::Accept(const IExpressionVisitor& visitor, IExpressionVis
 {
     visitor.VisitLiteralExpression(*this, context);
 }
+
+VariableExpression::VariableExpression(const Token& name)
+    : m_name(name)
+{}
+
+void VariableExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
+{
+    visitor.VisitVariableExpression(*this, context);
+}

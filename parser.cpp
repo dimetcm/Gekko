@@ -82,6 +82,7 @@ IStatementPtr Parser::ParseVariableDeclaration()
     IExpressionPtr initializer;
     if (Match(Token::Type::Equal))
     {
+        ++m_current;
         initializer = ParseExpression();
     }
 
@@ -201,6 +202,7 @@ IExpressionPtr Parser::ParsePrimary()
             throw ParseError(token, "Expect ')' after expression.");
         }
     }
+    case Token::Type::Identifier:   return std::make_unique<VariableExpression>(token);
     default: throw ParseError(token, "Unhandled primary token type.");
     }
 }

@@ -67,3 +67,13 @@ struct LiteralExpression : public IExpression
     Value m_value;
 };
 
+struct VariableExpression : public IExpression
+{
+    explicit VariableExpression(const Token& name);
+
+    virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
+
+    const Token& m_name;
+};
+
+

@@ -3,12 +3,24 @@
 #include "token.h"
 #include "statements.h"
 
-void Interpreter::Environment::Define(std::string_view name, const Value& value)
+Interpreter::Environment& Interpreter::GetEnvironment(IExpressionVisitorContext& context)
+{
+    ExpressionVisitorContext* internalContext = static_cast<ExpressionVisitorContext*>(&context);
+    return internalContext->m_environment;
+}
+
+Interpreter::Environment& Interpreter::GetEnvironment(IStatementVisitorContext& context)
+{
+    StatementVisitorContext* internalContext = static_cast<StatementVisitorContext*>(&context);
+    return internalContext->m_environment;
+}
+
+void Interpreter::Environment::Define(const std::string& name, const Value& value)
 {
      m_values.insert_or_assign(name, value);
 }
 
-const Value* Interpreter::Environment::GetValue(std::string_view name) const
+const Value* Interpreter::Environment::GetValue(const std::string& name) const
 {
     auto it = m_values.find(name);
     if (it != m_values.end())
@@ -73,11 +85,10 @@ double Interpreter::GetNumberOperand(const Token& token, const Value& lhs)
     throw InterpreterError(token, "Operand must be a number.");
 }
 
-void Interpreter::Interpret(const std::vector<IStatementPtr>& program, std::ostream& logOutput) const
+void Interpreter::Interpret(Environment& environment, const std::vector<IStatementPtr>& program, std::ostream& logOutput) const
 {
     try
     {
-        Environment environment;
         for (const IStatementPtr& statement : program)
         {
             Execute(*statement, environment);
@@ -91,33 +102,33 @@ void Interpreter::Interpret(const std::vector<IStatementPtr>& program, std::ostr
 
 void Interpreter::VisitExpressionStatement(const ExpressionStatement& statement, IStatementVisitorContext* context) const
 {
-    Eval(*statement.m_expression);
+    Eval(*statement.m_expression, GetEnvironment(*context));
 }
 
 void Interpreter::VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const
 {
-    Value value = Eval(*statement.m_expression);
+    Value value = Eval(*statement.m_expression, GetEnvironment(*context));
     std::cout << value.ToString() << std::endl;
 }
 
 void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationStatement& statement, IStatementVisitorContext* context) const
 {
+    Environment& environment = GetEnvironment(*context);
     Value value;
     if (statement.m_initializer)
     {
-        value = Eval(*statement.m_initializer);
+        value = Eval(*statement.m_initializer, environment);
     }
 
-    Environment* environment = static_cast<Environment*>(context);
-    environment->Define(statement.m_name.m_lexeme, value);
+    environment.Define(std::string(statement.m_name.m_lexeme), value);
 }
 
 
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
 {
-    Value expResult = Eval(*unaryExpression.m_expression);
+    Value expResult = Eval(*unaryExpression.m_expression, GetEnvironment(*context));
 
-    ExpressionResult* result = static_cast<ExpressionResult*>(context);
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
     if (unaryExpression.m_operator.m_type == Token::Type::Minus)
     {
         double number = GetNumberOperand(unaryExpression.m_operator, expResult);
@@ -140,9 +151,11 @@ void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, I
 
 void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression, IExpressionVisitorContext* context) const
 {
-    ExpressionResult* exprResult = static_cast<ExpressionResult*>(context);
+    Environment& environment = GetEnvironment(*context);
+    
+    ExpressionVisitorContext* exprResult = static_cast<ExpressionVisitorContext*>(context);
 
-    Value leftExprResult = Eval(*binaryExpression.m_left);
+    Value leftExprResult = Eval(*binaryExpression.m_left, environment);
 
     Token::Type operatorType = binaryExpression.m_operator.m_type;
 
@@ -151,7 +164,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
     case Token::Type::EqualEqual:
     case Token::Type::BangEqual:
     {
-        Value rightExprResult = Eval(*binaryExpression.m_right);
+        Value rightExprResult = Eval(*binaryExpression.m_right, environment);
 
         bool result = AreEqual(binaryExpression.m_operator, leftExprResult, rightExprResult);
         exprResult->m_result = Value(operatorType == Token::Type::EqualEqual ? result : !result);        
@@ -170,7 +183,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
         {
             if (const std::string* lhs = leftExprResult.GetString())
             {
-                Value rightExprResult = Eval(*binaryExpression.m_right);
+                Value rightExprResult = Eval(*binaryExpression.m_right, environment);
                 if (const std::string* rhs = rightExprResult.GetString())
                 {
                     exprResult->m_result = Value(*lhs + *rhs);
@@ -185,7 +198,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
 
         double lhs = GetNumberOperand(binaryExpression.m_operator, leftExprResult);
 
-        Value rightExprResult = Eval(*binaryExpression.m_right);
+        Value rightExprResult = Eval(*binaryExpression.m_right, environment);
 
         double rhs = GetNumberOperand(binaryExpression.m_operator, rightExprResult);
 
@@ -214,7 +227,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
 
 void Interpreter::VisitTernaryConditionalExpression(const TernaryConditionalExpression& ternaryConditionalExpression, IExpressionVisitorContext* context) const
 {
-    Value conditionResult = Eval(*ternaryConditionalExpression.m_condition);
+    Value conditionResult = Eval(*ternaryConditionalExpression.m_condition, GetEnvironment(*context));
     if (conditionResult.IsTruthy())
     {
         ternaryConditionalExpression.m_trueBranch->Accept(*this, context);
@@ -232,18 +245,32 @@ void Interpreter::VisitGroupingExpression(const GroupingExpression& groupingExpr
 
 void Interpreter::VisitLiteralExpression(const LiteralExpression& literalExpression, IExpressionVisitorContext* context) const
 {
-    ExpressionResult* result = static_cast<ExpressionResult*>(context);
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
     result->m_result = literalExpression.m_value; 
+}
+
+void Interpreter::VisitVariableExpression(const VariableExpression& variableExpression, IExpressionVisitorContext* context) const
+{
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+    if (const Value* value = result->m_environment.GetValue(std::string(variableExpression.m_name.m_lexeme)))
+    {
+        result->m_result = *value;
+    }
+    else
+    {
+        throw InterpreterError(variableExpression.m_name, "Undefined variable '" + std::string(variableExpression.m_name.m_lexeme) + "'.");
+    }
 }
 
 void Interpreter::Execute(const IStatement& statement, Environment& environment) const
 {
-    statement.Accept(*this, &environment);
+    StatementVisitorContext context(environment);
+    statement.Accept(*this, &context);
 }
 
-Value Interpreter::Eval(const IExpression& expression) const
+Value Interpreter::Eval(const IExpression& expression, Environment& environment) const
 {
-    ExpressionResult result;
-    expression.Accept(*this, &result);
-    return result.m_result;
+    ExpressionVisitorContext context(environment);
+    expression.Accept(*this, &context);
+    return context.m_result;
 }

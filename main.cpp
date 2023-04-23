@@ -12,14 +12,14 @@
 #include "mocks/mockedinterpreter.h"
 #include "mocks/mockedparser.h"
 
-void run(std::string_view source)
+void run(Interpreter::Environment& environment, std::string_view source)
 {
     Scanner scanner(source);
 
     Parser parser(scanner.Tokens());
     std::vector<IStatementPtr> program = parser.Parse(std::cout);
     Interpreter interpreter;
-    interpreter.Interpret(program, std::cout);
+    interpreter.Interpret(environment, program, std::cout);
 }
 
 std::optional<std::string> GetFileContent(const char* filename)
@@ -47,18 +47,21 @@ void runFile(const char* filename)
     std::optional<std::string> script = GetFileContent(filename);
     if (script.has_value())
     {
-        run(script.value());
+        Interpreter::Environment environment;
+        run(environment, script.value());
     }
 }
 
 void runPrompt()
 {
+    Interpreter::Environment environment;
+
     std::string line; 
 
     std::cout << "> ";
     while (std::getline(std::cin, line))
     {
-        run(line);
+        run(environment, line);
         std::cout << "> ";
     }
 }
