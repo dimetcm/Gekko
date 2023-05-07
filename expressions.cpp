@@ -63,3 +63,13 @@ void VariableExpression::Accept(const IExpressionVisitor& visitor, IExpressionVi
 {
     visitor.VisitVariableExpression(*this, context);
 }
+
+AssignmentExpression::AssignmentExpression(const Token& name, IExpressionPtr expression)
+    : m_name(name)
+    , m_expression(std::move(expression))
+{}
+
+void AssignmentExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
+{
+    visitor.VisitAssignmentExpression(*this, context);
+}

@@ -76,4 +76,14 @@ struct VariableExpression : public IExpression
     const Token& m_name;
 };
 
+struct AssignmentExpression : public IExpression
+{
+     AssignmentExpression(const Token& name, IExpressionPtr expression);
+
+    virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
+
+    const Token& m_name;
+    IExpressionPtr m_expression;
+};
+
 

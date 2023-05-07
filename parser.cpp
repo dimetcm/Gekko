@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "statements.h"
 #include "expressions.h"
+#include "expressionvisitor.h"
 #include "gekko.h"
 #include <assert.h>
 
@@ -116,8 +117,40 @@ IStatementPtr Parser::ParseExpressionStatement()
 
 IExpressionPtr Parser::ParseExpression()
 {
-    return ParseComma();
-} 
+    return ParseAssignment();
+}
+
+IExpressionPtr Parser::ParseAssignment()
+{
+   IExpressionPtr expression = ParseComma(); 
+    if (Match(Token::Type::Equal))
+    {
+        struct VariableGetter : IExpressionVisitor, IExpressionVisitorContext
+        {
+            void VisitVariableExpression(const VariableExpression& variableExpression, IExpressionVisitorContext* context) const
+            {
+                VariableGetter* getter = static_cast<VariableGetter*>(context);
+                getter->m_result = &variableExpression.m_name;
+            }
+
+            const Token* m_result = nullptr;
+        } visitor;
+
+        expression->Accept(visitor, &visitor);
+
+        if (visitor.m_result)
+        {
+            IExpressionPtr value = ParseAssignment();
+            return std::make_unique<AssignmentExpression>(*visitor.m_result, std::move(value));
+        }
+        else
+        {
+            ParseError(m_tokens[m_current], "Invalid assignment target.");
+        }
+    }
+
+    return expression;
+ }
 
 IExpressionPtr Parser::ParseComma()
 {

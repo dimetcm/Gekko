@@ -262,6 +262,11 @@ void Interpreter::VisitVariableExpression(const VariableExpression& variableExpr
     }
 }
 
+void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignmentExpression, IExpressionVisitorContext* context) const
+{
+        throw InterpreterError(assignmentExpression.m_name, "NOT IMPLEMENTED" );
+}
+
 void Interpreter::Execute(const IStatement& statement, Environment& environment) const
 {
     StatementVisitorContext context(environment);

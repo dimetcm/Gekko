@@ -46,6 +46,7 @@ protected:
     IStatementPtr ParsePrintStatement();
     IStatementPtr ParseExpressionStatement();
     IExpressionPtr ParseExpression();
+    IExpressionPtr ParseAssignment();
     IExpressionPtr ParseComma();
     IExpressionPtr ParseTernaryConditional();
     IExpressionPtr ParseEquality();
