@@ -17,9 +17,10 @@ struct Interpreter : IExpressionVisitor, IStatementVisitor
 {
     struct Environment
     {
-        void Define(const std::string& name, const Value& value);
-        const Value* GetValue(const std::string& name) const;
-    private:
+        void Define(const Token& token, const Value& value);
+        void Assign(const Token& token, const Value& value);
+        Value GetValue(const Token& token) const;
+    protected:
         std::map<std::string, Value> m_values;
     };
 

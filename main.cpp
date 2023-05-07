@@ -4,6 +4,7 @@
 #include <sstream>
 #include <optional>
 #include <assert.h>
+#include <filesystem>
 #include "scanner.h"
 #include "parser.h"
 #include "astprinter.h"
@@ -115,7 +116,8 @@ void runTests()
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
             MockedInterpreter interpreter;
-            Value result = interpreter.Interpret(*expression, std::cerr);
+            Interpreter::Environment environment;
+            Value result = interpreter.Eval(*expression, environment);
 
             assert(result.GetNumber() && *result.GetNumber() == 22);
         }
@@ -126,7 +128,8 @@ void runTests()
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
             MockedInterpreter interpreter;
-            Value result = interpreter.Interpret(*expression, std::cerr);
+            Interpreter::Environment environment;
+            Value result = interpreter.Eval(*expression, environment);
 
             assert(result.GetBoolean() && *result.GetBoolean());
         }
@@ -137,9 +140,26 @@ void runTests()
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
             MockedInterpreter interpreter;
-            Value result = interpreter.Interpret(*expression, std::cerr);
+            Interpreter::Environment environment;
+            Value result = interpreter.Eval(*expression, environment);
 
             assert(result.GetBoolean() && !*result.GetBoolean());
+        }
+
+        {   // assognment test
+            Scanner scanner("var a = 3;\n a = 2;");
+            MockedParser parser(scanner.Tokens());
+            std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
+            assert(programm.size() == 2);
+            MockedInterpreter interpreter;
+            MockedEnvironment environment;
+            for (const IStatementPtr& statement : programm)
+            {
+                interpreter.Execute(*statement, environment);
+            }
+
+            assert(environment.Hasvalue("a"));
+            assert(environment.GetValue("a").GetNumber() && *environment.GetValue("a").GetNumber() == 2.0);
         }
     }
 }

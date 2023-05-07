@@ -125,6 +125,8 @@ IExpressionPtr Parser::ParseAssignment()
    IExpressionPtr expression = ParseComma(); 
     if (Match(Token::Type::Equal))
     {
+        ++m_current;
+        
         struct VariableGetter : IExpressionVisitor, IExpressionVisitorContext
         {
             void VisitVariableExpression(const VariableExpression& variableExpression, IExpressionVisitorContext* context) const

@@ -15,20 +15,34 @@ Interpreter::Environment& Interpreter::GetEnvironment(IStatementVisitorContext& 
     return internalContext->m_environment;
 }
 
-void Interpreter::Environment::Define(const std::string& name, const Value& value)
+void Interpreter::Environment::Define(const Token& token, const Value& value)
 {
-     m_values.insert_or_assign(name, value);
+     m_values.insert_or_assign(std::string(token.m_lexeme), value);
 }
 
-const Value* Interpreter::Environment::GetValue(const std::string& name) const
+void Interpreter::Environment::Assign(const Token& token, const Value& value)
 {
+    std::string name(token.m_lexeme);
     auto it = m_values.find(name);
     if (it != m_values.end())
     {
-        return &it->second;
+        it->second = value;
+        return;
     }
 
-    return nullptr;
+    throw InterpreterError(token, "Undefined variable '" + name + "'.");
+}
+
+Value Interpreter::Environment::GetValue(const Token& token) const
+{
+    std::string name(token.m_lexeme);
+    auto it = m_values.find(name);
+    if (it != m_values.end())
+    {
+        return it->second;
+    }
+
+    throw InterpreterError(token, "Undefined variable '" + name + "'.");
 }
 
 
@@ -120,7 +134,7 @@ void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationSta
         value = Eval(*statement.m_initializer, environment);
     }
 
-    environment.Define(std::string(statement.m_name.m_lexeme), value);
+    environment.Define(statement.m_name, value);
 }
 
 
@@ -252,19 +266,17 @@ void Interpreter::VisitLiteralExpression(const LiteralExpression& literalExpress
 void Interpreter::VisitVariableExpression(const VariableExpression& variableExpression, IExpressionVisitorContext* context) const
 {
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
-    if (const Value* value = result->m_environment.GetValue(std::string(variableExpression.m_name.m_lexeme)))
-    {
-        result->m_result = *value;
-    }
-    else
-    {
-        throw InterpreterError(variableExpression.m_name, "Undefined variable '" + std::string(variableExpression.m_name.m_lexeme) + "'.");
-    }
+    result->m_result = GetEnvironment(*context).GetValue(variableExpression.m_name);
 }
 
 void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignmentExpression, IExpressionVisitorContext* context) const
 {
-        throw InterpreterError(assignmentExpression.m_name, "NOT IMPLEMENTED" );
+    Environment& environment = GetEnvironment(*context);
+    Value value = Eval(*assignmentExpression.m_expression, GetEnvironment(*context));
+    environment.Assign(assignmentExpression.m_name, value);
+    
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+    result->m_result = value;
 }
 
 void Interpreter::Execute(const IStatement& statement, Environment& environment) const

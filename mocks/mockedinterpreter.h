@@ -2,21 +2,22 @@
 
 #include "../interpreter.h"
 
+struct MockedEnvironment : Interpreter::Environment
+{
+    bool Hasvalue(const std::string& name) const { return m_values.find(name) != m_values.end(); }
+    Value GetValue(const std::string& name) const { return m_values.find(name)->second; }
+};
+
 struct MockedInterpreter : Interpreter
 {
-    Value Interpret(const IExpression& expression, std::ostream& logOutput)
+    void Execute(const IStatement& statement, Environment& environment) const
     {
-        try
-        {
-            Environment environment;
-            return Eval(expression, environment);
-        }
-        catch(const InterpreterError& ie)
-        {
-            logOutput << "[line " << ie.m_operator.m_line << "]: " <<  ie.m_message << "\n";
-        }
+        Interpreter::Execute(statement, environment);
+    }
 
-        return Value();
+    Value Eval(const IExpression& expression, Environment& environment) const
+    {
+        return Interpreter::Eval(expression, environment);
     }
 };
 
