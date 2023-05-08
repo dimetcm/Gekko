@@ -91,16 +91,38 @@ IStatementPtr Parser::ParseVariableDeclaration()
     return std::make_unique<VariableDeclarationStatement>(name, std::move(initializer));
 }
 
+std::vector<IStatementPtr> Parser::ParseBlock()
+{
+    std::vector<IStatementPtr> block;
+    while (!Match(Token::Type::ClosingBrace) && !Match(Token::Type::EndOfFile))
+    {
+        block.push_back(ParseDeclaration());
+    }
+
+    Consume(Token::Type::ClosingBrace, "Expect '}' after block.");
+
+    return block;
+}
+
 IStatementPtr Parser::ParseStatement()
 {
-    return Match(Token::Type::Print) ? ParsePrintStatement() : ParseExpressionStatement();
+    if (Match(Token::Type::Print))
+    {
+        ++m_current; // consume print token
+        return ParsePrintStatement();
+    }
+
+    if (Match(Token::Type::OpeningBrace))
+    {
+        ++m_current; // consume opening brace
+        return std::make_unique<BlockStatement>(ParseBlock());
+    }
+
+    return ParseExpressionStatement();
 }
 
 IStatementPtr Parser::ParsePrintStatement()
 {
-    assert(Match(Token::Type::Print));
-    ++m_current; // consume print
-
     IExpressionPtr value = ParseExpression();
     Consume(Token::Type::Semicolon, "Expect ';' after value.");
 
@@ -126,7 +148,7 @@ IExpressionPtr Parser::ParseAssignment()
     if (Match(Token::Type::Equal))
     {
         ++m_current;
-        
+
         struct VariableGetter : IExpressionVisitor, IExpressionVisitorContext
         {
             void VisitVariableExpression(const VariableExpression& variableExpression, IExpressionVisitorContext* context) const

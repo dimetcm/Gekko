@@ -10,9 +10,9 @@ struct MockedEnvironment : Interpreter::Environment
 
 struct MockedInterpreter : Interpreter
 {
-    void Execute(const IStatement& statement, Environment& environment) const
+    void Execute(const IStatement& statement, Environment& environment, std::ostream& outputStream) const
     {
-        Interpreter::Execute(statement, environment);
+        Interpreter::Execute(statement, environment, outputStream);
     }
 
     Value Eval(const IExpression& expression, Environment& environment) const

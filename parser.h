@@ -55,6 +55,8 @@ protected:
     IExpressionPtr ParseFactor();
     IExpressionPtr ParseUnary();
     IExpressionPtr ParsePrimary();
+    std::vector<IStatementPtr> ParseBlock();
+
 
     void Synchronize();
 

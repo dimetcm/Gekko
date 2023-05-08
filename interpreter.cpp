@@ -15,6 +15,16 @@ Interpreter::Environment& Interpreter::GetEnvironment(IStatementVisitorContext& 
     return internalContext->m_environment;
 }
 
+std::ostream& Interpreter::GetOutputStream(IStatementVisitorContext& context)
+{
+    StatementVisitorContext* internalContext = static_cast<StatementVisitorContext*>(&context);
+    return internalContext->m_outputStream;
+}
+
+Interpreter::Environment::Environment(Environment* outer)
+    : m_outer(outer)
+{}
+
 void Interpreter::Environment::Define(const Token& token, const Value& value)
 {
      m_values.insert_or_assign(std::string(token.m_lexeme), value);
@@ -27,10 +37,15 @@ void Interpreter::Environment::Assign(const Token& token, const Value& value)
     if (it != m_values.end())
     {
         it->second = value;
-        return;
     }
-
-    throw InterpreterError(token, "Undefined variable '" + name + "'.");
+    else if (m_outer)
+    {
+         m_outer->Assign(token, value);
+    }
+    else
+    {
+        throw InterpreterError(token, "Undefined variable '" + name + "'.");
+    }
 }
 
 Value Interpreter::Environment::GetValue(const Token& token) const
@@ -41,10 +56,13 @@ Value Interpreter::Environment::GetValue(const Token& token) const
     {
         return it->second;
     }
+    else if (m_outer)
+    {
+        return m_outer->GetValue(token);
+    }
 
     throw InterpreterError(token, "Undefined variable '" + name + "'.");
 }
-
 
 bool Interpreter::AreEqual(const Token& token, const Value& lhs, const Value& rhs)
 {
@@ -99,18 +117,18 @@ double Interpreter::GetNumberOperand(const Token& token, const Value& lhs)
     throw InterpreterError(token, "Operand must be a number.");
 }
 
-void Interpreter::Interpret(Environment& environment, const std::vector<IStatementPtr>& program, std::ostream& logOutput) const
+void Interpreter::Interpret(Environment& environment, const std::vector<IStatementPtr>& program, std::ostream& outputStream, std::ostream& errorsLog) const
 {
     try
     {
         for (const IStatementPtr& statement : program)
         {
-            Execute(*statement, environment);
+            Execute(*statement, environment, outputStream);
         }
     }
     catch(const InterpreterError& ie)
     {
-        logOutput << "[line " << ie.m_operator.m_line << "]: " <<  ie.m_message << "\n";
+        errorsLog << "[line " << ie.m_operator.m_line << "]: " <<  ie.m_message << "\n";
     }
 }
 
@@ -122,7 +140,7 @@ void Interpreter::VisitExpressionStatement(const ExpressionStatement& statement,
 void Interpreter::VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const
 {
     Value value = Eval(*statement.m_expression, GetEnvironment(*context));
-    std::cout << value.ToString() << std::endl;
+    GetOutputStream(*context) << value.ToString() << std::endl;
 }
 
 void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationStatement& statement, IStatementVisitorContext* context) const
@@ -137,6 +155,14 @@ void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationSta
     environment.Define(statement.m_name, value);
 }
 
+void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const
+{
+    Environment environment(&GetEnvironment(*context));
+    for (const IStatementPtr& statement : statement.m_block)
+    {
+        Execute(*statement, environment, GetOutputStream(*context));
+    }
+}
 
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
 {
@@ -279,9 +305,9 @@ void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignme
     result->m_result = value;
 }
 
-void Interpreter::Execute(const IStatement& statement, Environment& environment) const
+void Interpreter::Execute(const IStatement& statement, Environment& environment, std::ostream& outputStream) const
 {
-    StatementVisitorContext context(environment);
+    StatementVisitorContext context(environment, outputStream);
     statement.Accept(*this, &context);
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 struct Token;
 
@@ -12,6 +13,8 @@ struct IStatement
     virtual ~IStatement() {}
     virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const = 0;
 };
+
+using IStatementPtr = std::unique_ptr<const IStatement>;
 
 class IExpression;
 using IExpressionPtr = std::unique_ptr<const IExpression>;
@@ -43,4 +46,12 @@ struct VariableDeclarationStatement : IStatement
 
     const Token& m_name;
     IExpressionPtr m_initializer;
+};
+
+struct BlockStatement : IStatement
+{
+    explicit BlockStatement(std::vector<IStatementPtr>&& block);
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+
+    std::vector<IStatementPtr> m_block;
 };

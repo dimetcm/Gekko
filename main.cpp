@@ -20,7 +20,7 @@ void run(Interpreter::Environment& environment, std::string_view source)
     Parser parser(scanner.Tokens());
     std::vector<IStatementPtr> program = parser.Parse(std::cout);
     Interpreter interpreter;
-    interpreter.Interpret(environment, program, std::cout);
+    interpreter.Interpret(environment, program, std::cout, std::cerr);
 }
 
 std::optional<std::string> GetFileContent(const char* filename)
@@ -153,13 +153,37 @@ void runTests()
             assert(programm.size() == 2);
             MockedInterpreter interpreter;
             MockedEnvironment environment;
+            std::stringstream outputStream;
             for (const IStatementPtr& statement : programm)
             {
-                interpreter.Execute(*statement, environment);
+                interpreter.Execute(*statement, environment, outputStream);
             }
 
             assert(environment.Hasvalue("a"));
             assert(environment.GetValue("a").GetNumber() && *environment.GetValue("a").GetNumber() == 2.0);
+        }
+
+        {   // block test
+            Scanner scanner(
+                "var a = 1;\n"
+                "{\n"
+                "var a = a + 2;"
+                "print a;"
+                "}"
+                "print a;"
+            );
+            MockedParser parser(scanner.Tokens());
+            std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
+            MockedInterpreter interpreter;
+            MockedEnvironment environment;
+            std::stringstream outputStream;
+            for (const IStatementPtr& statement : programm)
+            {
+                interpreter.Execute(*statement, environment, outputStream);
+            }
+
+            assert(environment.Hasvalue("a"));
+            assert(environment.GetValue("a").GetNumber() && *environment.GetValue("a").GetNumber() == 1.0);
         }
     }
 }

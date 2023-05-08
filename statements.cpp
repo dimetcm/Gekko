@@ -29,3 +29,12 @@ void VariableDeclarationStatement::Accept(const IStatementVisitor& visitor, ISta
 {
     visitor.VisitVariableDeclarationStatement(*this, context);
 }
+
+BlockStatement::BlockStatement(std::vector<IStatementPtr>&& block)
+    : m_block(std::move(block))
+{}
+
+void BlockStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitBlockStatement(*this, context);
+}
