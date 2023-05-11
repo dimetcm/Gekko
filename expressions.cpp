@@ -73,3 +73,14 @@ void AssignmentExpression::Accept(const IExpressionVisitor& visitor, IExpression
 {
     visitor.VisitAssignmentExpression(*this, context);
 }
+
+LogicalExpression::LogicalExpression(IExpressionPtr left, const Token& op, IExpressionPtr right)
+    : m_left(std::move(left))
+    , m_operator(op)
+    , m_right(std::move(right))
+{}
+
+void LogicalExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
+{
+    visitor.VisitLogicalExpression(*this, context);
+}

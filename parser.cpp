@@ -211,7 +211,7 @@ IExpressionPtr Parser::ParseComma()
 
 IExpressionPtr Parser::ParseTernaryConditional()
 {
-    IExpressionPtr expression = ParseEquality();
+    IExpressionPtr expression = ParseOr();
 
     while (Match(Token::Type::Questionmark))
     {
@@ -231,6 +231,29 @@ IExpressionPtr Parser::ParseTernaryConditional()
     }
 
     return expression;
+}
+
+IExpressionPtr Parser::ParseLogicalExpression(std::function<IExpressionPtr()> exprFunc, Token::Type tokenType)
+{
+    IExpressionPtr expression = exprFunc();
+    if (Match(tokenType))
+    {
+        Token token = m_tokens[m_current++];
+        IExpressionPtr right = exprFunc();
+        return std::make_unique<LogicalExpression>(std::move(expression), token, std::move(right));
+    }
+
+    return expression;    
+}
+
+IExpressionPtr Parser::ParseOr()
+{
+    return ParseLogicalExpression(std::bind(&Parser::ParseAnd, this), Token::Type::Or);
+}
+
+IExpressionPtr Parser::ParseAnd()
+{
+    return ParseLogicalExpression(std::bind(&Parser::ParseEquality, this), Token::Type::And);
 }
 
 IExpressionPtr Parser::ParseEquality()

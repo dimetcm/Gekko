@@ -186,7 +186,7 @@ void runTests()
             assert(environment.GetValue("a").GetNumber() && *environment.GetValue("a").GetNumber() == 1.0);
         }
 
-         {   // if test
+        {   // if test
             Scanner scanner(
                 "if (true)"
                 "{"
@@ -207,6 +207,23 @@ void runTests()
                 interpreter.Execute(*statement, environment, outputStream);
             }
             assert(outputStream.str() == "true\n");
+        }
+
+        {   // logical test
+            Scanner scanner(
+                "print \"hi\" or 2;"
+                "print nil or \"yes\";" 
+            );
+            MockedParser parser(scanner.Tokens());
+            std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
+            MockedInterpreter interpreter;
+            MockedEnvironment environment;
+            std::stringstream outputStream;
+            for (const IStatementPtr& statement : programm)
+            {
+                interpreter.Execute(*statement, environment, outputStream);
+            }
+            assert(outputStream.str() == "hi\nyes\n");
         }
     }
 }

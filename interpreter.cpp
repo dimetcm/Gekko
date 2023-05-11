@@ -321,6 +321,26 @@ void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignme
     result->m_result = value;
 }
 
+void Interpreter::VisitLogicalExpression(const LogicalExpression& logicalExpression, IExpressionVisitorContext* context) const
+{
+    Environment& environment = GetEnvironment(*context);
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+
+    Value left = Eval(*logicalExpression.m_left, environment);
+    if (logicalExpression.m_operator.m_type == Token::Type::Or)
+    {
+        result->m_result = left.IsTruthy() ? left : Eval(*logicalExpression.m_right, environment);
+    }
+    else if (logicalExpression.m_operator.m_type == Token::Type::And)
+    {
+        result->m_result = !left.IsTruthy() ? left : Eval(*logicalExpression.m_right, environment);
+    }
+    else
+    {
+        throw InterpreterError(logicalExpression.m_operator, "unsupported logical operator");
+    }
+}
+
 void Interpreter::Execute(const IStatement& statement, Environment& environment, std::ostream& outputStream) const
 {
     StatementVisitorContext context(environment, outputStream);

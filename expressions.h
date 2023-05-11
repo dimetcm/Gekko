@@ -86,4 +86,13 @@ struct AssignmentExpression : public IExpression
     IExpressionPtr m_expression;
 };
 
+struct LogicalExpression : public IExpression
+{
+    LogicalExpression(IExpressionPtr left, const Token& op, IExpressionPtr right);
 
+    virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
+
+    IExpressionPtr m_left;
+    const Token& m_operator;
+    IExpressionPtr m_right;
+};
