@@ -9,6 +9,7 @@ struct ExpressionStatement;
 struct PrintStatement;
 struct VariableDeclarationStatement;
 struct BlockStatement;
+struct IfStatement;
 
 struct IStatementVisitor
 {
@@ -18,4 +19,5 @@ struct IStatementVisitor
     virtual void VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const {}
     virtual void VisitVariableDeclarationStatement(const VariableDeclarationStatement& statement, IStatementVisitorContext* context) const {}
     virtual void VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const {}
+    virtual void VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const {}
 };

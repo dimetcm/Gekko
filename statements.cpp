@@ -38,3 +38,14 @@ void BlockStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorC
 {
     visitor.VisitBlockStatement(*this, context);
 }
+
+IfStatement::IfStatement(IExpressionPtr condition, IStatementPtr trueBranch, IStatementPtr falseBranch)
+    : m_condition(std::move(condition))
+    , m_trueBranch(std::move(trueBranch))
+    , m_falseBranch(std::move(falseBranch))
+{}
+
+void IfStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitIfStatement(*this, context);    
+}

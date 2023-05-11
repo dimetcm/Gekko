@@ -112,13 +112,41 @@ IStatementPtr Parser::ParseStatement()
         return ParsePrintStatement();
     }
 
+    if (Match(Token::Type::If))
+    {
+        ++m_current; // consume if token
+        return ParseIfStatement();
+    }
+
     if (Match(Token::Type::OpeningBrace))
     {
         ++m_current; // consume opening brace
-        return std::make_unique<BlockStatement>(ParseBlock());
+        return ParseBlockStatement();
     }
 
     return ParseExpressionStatement();
+}
+
+IStatementPtr Parser::ParseIfStatement()
+{
+    Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'if'.");
+    IExpressionPtr condition = ParseExpression();
+    Consume(Token::Type::ClosingParenthesis, "Expect ')' after if condition.");
+
+    IStatementPtr trueBranch = ParseStatement();
+    IStatementPtr falseBranch = nullptr;
+    if (Match(Token::Type::Else))
+    {
+        ++m_current;
+        falseBranch = ParseStatement();
+    }
+    
+    return std::make_unique<IfStatement>(std::move(condition), std::move(trueBranch), std::move(falseBranch));
+}
+
+IStatementPtr Parser::ParseBlockStatement()
+{
+    return std::make_unique<BlockStatement>(ParseBlock());
 }
 
 IStatementPtr Parser::ParsePrintStatement()

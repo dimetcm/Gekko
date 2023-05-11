@@ -55,3 +55,13 @@ struct BlockStatement : IStatement
 
     std::vector<IStatementPtr> m_block;
 };
+
+struct IfStatement : IStatement
+{
+    IfStatement(IExpressionPtr condition, IStatementPtr trueBranch, IStatementPtr falseBranch);
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+
+    IExpressionPtr m_condition;
+    IStatementPtr m_trueBranch;
+    IStatementPtr m_falseBranch;
+};

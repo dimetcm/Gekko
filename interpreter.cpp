@@ -164,6 +164,22 @@ void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatemen
     }
 }
 
+void Interpreter::VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const
+{
+    Environment& environment = GetEnvironment(*context);
+    std::ostream& outputStream = GetOutputStream(*context);
+
+    Value conditionResult = Eval(*statement.m_condition, environment);
+    if (conditionResult.IsTruthy())
+    {
+        Execute(*statement.m_trueBranch, environment, outputStream);
+    }
+    else if (statement.m_falseBranch)
+    {
+        Execute(*statement.m_falseBranch, environment, outputStream);
+    }
+}
+
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
 {
     Value expResult = Eval(*unaryExpression.m_expression, GetEnvironment(*context));

@@ -185,6 +185,29 @@ void runTests()
             assert(environment.Hasvalue("a"));
             assert(environment.GetValue("a").GetNumber() && *environment.GetValue("a").GetNumber() == 1.0);
         }
+
+         {   // if test
+            Scanner scanner(
+                "if (true)"
+                "{"
+                "print true;"
+                "}"
+                "else"
+                "{"
+                "print false;"
+                "}"
+            );
+            MockedParser parser(scanner.Tokens());
+            std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
+            MockedInterpreter interpreter;
+            MockedEnvironment environment;
+            std::stringstream outputStream;
+            for (const IStatementPtr& statement : programm)
+            {
+                interpreter.Execute(*statement, environment, outputStream);
+            }
+            assert(outputStream.str() == "true\n");
+        }
     }
 }
 
