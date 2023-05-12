@@ -118,6 +118,12 @@ IStatementPtr Parser::ParseStatement()
         return ParseIfStatement();
     }
 
+    if (Match(Token::Type::While))
+    {
+        ++m_current; // consume while token
+        return ParseWhileStatement();
+    }
+
     if (Match(Token::Type::OpeningBrace))
     {
         ++m_current; // consume opening brace
@@ -142,6 +148,16 @@ IStatementPtr Parser::ParseIfStatement()
     }
     
     return std::make_unique<IfStatement>(std::move(condition), std::move(trueBranch), std::move(falseBranch));
+}
+
+IStatementPtr Parser::ParseWhileStatement()
+{
+    Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'while'.");
+    IExpressionPtr condition = ParseExpression();
+    Consume(Token::Type::ClosingParenthesis, "Expect ')' after while condition.");
+
+    IStatementPtr statement = ParseStatement();
+    return std::make_unique<WhileStatement>(std::move(condition), std::move(statement));
 }
 
 IStatementPtr Parser::ParseBlockStatement()

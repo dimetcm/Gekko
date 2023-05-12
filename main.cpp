@@ -225,6 +225,29 @@ void runTests()
             }
             assert(outputStream.str() == "hi\nyes\n");
         }
+
+        {   // while test
+            Scanner scanner(
+                "var i = 0;"
+                "var a = \"a\";"
+                "while (i < 3)"
+                "{"
+                "a = a + a;"
+                "i = i + 1;"
+                "}"
+                "print a;" 
+            );
+            MockedParser parser(scanner.Tokens());
+            std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
+            MockedInterpreter interpreter;
+            MockedEnvironment environment;
+            std::stringstream outputStream;
+            for (const IStatementPtr& statement : programm)
+            {
+                interpreter.Execute(*statement, environment, outputStream);
+            }
+            assert(outputStream.str() == "aaaaaaaa\n");
+        }
     }
 }
 

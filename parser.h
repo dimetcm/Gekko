@@ -47,6 +47,7 @@ protected:
     IStatementPtr ParseStatement();
     IStatementPtr ParseBlockStatement();
     IStatementPtr ParseIfStatement();
+    IStatementPtr ParseWhileStatement();
     IStatementPtr ParsePrintStatement();
     IStatementPtr ParseExpressionStatement();
     IExpressionPtr ParseExpression();

@@ -49,3 +49,13 @@ void IfStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorCont
 {
     visitor.VisitIfStatement(*this, context);    
 }
+
+WhileStatement::WhileStatement(IExpressionPtr condition, IStatementPtr body)
+    : m_condition(std::move(condition))
+    , m_body(std::move(body))
+{}
+
+void WhileStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitWhileStatement(*this, context);    
+}

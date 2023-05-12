@@ -64,6 +64,7 @@ protected:
     virtual void VisitVariableDeclarationStatement(const VariableDeclarationStatement& statement, IStatementVisitorContext* context) const override;
     virtual void VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const override;
     virtual void VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const override;
+    virtual void VisitWhileStatement(const WhileStatement& statement, IStatementVisitorContext* context) const override;
 
     virtual void VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitBinaryExpression(const BinaryExpression& binaryExpression, IExpressionVisitorContext* context) const override;

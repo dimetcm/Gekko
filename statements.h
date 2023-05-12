@@ -65,3 +65,12 @@ struct IfStatement : IStatement
     IStatementPtr m_trueBranch;
     IStatementPtr m_falseBranch;
 };
+
+struct WhileStatement : IStatement
+{
+    WhileStatement(IExpressionPtr condition, IStatementPtr body);
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+
+    IExpressionPtr m_condition;
+    IStatementPtr m_body;
+};
