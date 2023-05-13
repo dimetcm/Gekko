@@ -124,6 +124,12 @@ IStatementPtr Parser::ParseStatement()
         return ParseWhileStatement();
     }
 
+    if (Match(Token::Type::For))
+    {
+        ++m_current; // consume for token
+        return ParseForStatement();
+    }
+
     if (Match(Token::Type::OpeningBrace))
     {
         ++m_current; // consume opening brace
@@ -158,6 +164,64 @@ IStatementPtr Parser::ParseWhileStatement()
 
     IStatementPtr statement = ParseStatement();
     return std::make_unique<WhileStatement>(std::move(condition), std::move(statement));
+}
+
+IStatementPtr Parser::ParseForStatement()
+{
+    Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'for'.");
+    IStatementPtr initStatement;
+    if (Match(Token::Type::Semicolon))
+    {
+        m_current++;
+    }
+    if (Match(Token::Type::Var))
+    {
+        m_current++; 
+        initStatement = ParseVariableDeclaration();
+    }
+    else
+    {
+        initStatement = ParseExpressionStatement();
+    }
+
+    IExpressionPtr condition;
+    if (!Match(Token::Type::Semicolon))
+    {
+        condition = ParseExpression();
+    }
+    
+    Consume(Token::Type::Semicolon, "Expect ';' after loop condition.");
+ 
+    IExpressionPtr increment;
+    if (!Match(Token::Type::Semicolon))
+    {
+        increment = ParseExpression();
+    }
+
+    Consume(Token::Type::ClosingParenthesis, "Expect ')' after loop increment.");
+
+    IStatementPtr body = ParseStatement();
+
+    std::vector<IStatementPtr> bodyWithIncrement;
+    bodyWithIncrement.push_back(std::move(body));
+    if (increment)
+    {
+        IStatementPtr incrementStatement = std::make_unique<ExpressionStatement>(std::move(increment));
+        bodyWithIncrement.push_back(std::move(incrementStatement));
+    }
+
+    IStatementPtr whileBody = std::make_unique<BlockStatement>(std::move(bodyWithIncrement));
+    IStatementPtr whileStatement = std::make_unique<WhileStatement>(std::move(condition), std::move(whileBody));
+
+    std::vector<IStatementPtr> InitializerWithWhile;
+    if (initStatement)    
+    {
+        InitializerWithWhile.push_back(std::move(initStatement));
+    }
+
+    InitializerWithWhile.push_back(std::move(whileStatement));
+
+    return std::make_unique<BlockStatement>(std::move(InitializerWithWhile));
 }
 
 IStatementPtr Parser::ParseBlockStatement()

@@ -3,6 +3,7 @@
 #include <string>
 #include "expressions.h"
 #include "expressionvisitor.h"
+#include "token.h"
 
 
 struct ASTPrinter : IExpressionVisitor
