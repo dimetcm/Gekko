@@ -67,9 +67,8 @@ IExpressionPtr Parser::ParseBinaryExpression(std::function<IExpressionPtr()> exp
 
 IStatementPtr Parser::ParseDeclaration()
 {
-    if (Match(Token::Type::Var))
+    if (ConsumeIfMatch(Token::Type::Var))
     {
-        ++m_current;
         return ParseVariableDeclaration();
     }
 
@@ -81,9 +80,8 @@ IStatementPtr Parser::ParseVariableDeclaration()
     const Token& name = Consume(Token::Type::Identifier, "Expect variable name.");
 
     IExpressionPtr initializer;
-    if (Match(Token::Type::Equal))
+    if (ConsumeIfMatch(Token::Type::Equal))
     {
-        ++m_current;
         initializer = ParseExpression();
     }
 
@@ -106,33 +104,28 @@ std::vector<IStatementPtr> Parser::ParseBlock()
 
 IStatementPtr Parser::ParseStatement()
 {
-    if (Match(Token::Type::Print))
+    if (ConsumeIfMatch(Token::Type::Print))
     {
-        ++m_current; // consume print token
         return ParsePrintStatement();
     }
 
-    if (Match(Token::Type::If))
+    if (ConsumeIfMatch(Token::Type::If))
     {
-        ++m_current; // consume if token
         return ParseIfStatement();
     }
 
-    if (Match(Token::Type::While))
+    if (ConsumeIfMatch(Token::Type::While))
     {
-        ++m_current; // consume while token
         return ParseWhileStatement();
     }
 
-    if (Match(Token::Type::For))
+    if (ConsumeIfMatch(Token::Type::For))
     {
-        ++m_current; // consume for token
         return ParseForStatement();
     }
 
-    if (Match(Token::Type::OpeningBrace))
+    if (ConsumeIfMatch(Token::Type::OpeningBrace))
     {
-        ++m_current; // consume opening brace
         return ParseBlockStatement();
     }
 
@@ -147,9 +140,8 @@ IStatementPtr Parser::ParseIfStatement()
 
     IStatementPtr trueBranch = ParseStatement();
     IStatementPtr falseBranch = nullptr;
-    if (Match(Token::Type::Else))
+    if (ConsumeIfMatch(Token::Type::Else))
     {
-        ++m_current;
         falseBranch = ParseStatement();
     }
     
@@ -170,18 +162,10 @@ IStatementPtr Parser::ParseForStatement()
 {
     Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'for'.");
     IStatementPtr initStatement;
-    if (Match(Token::Type::Semicolon))
+
+    if (!ConsumeIfMatch(Token::Type::Semicolon))
     {
-        m_current++;
-    }
-    if (Match(Token::Type::Var))
-    {
-        m_current++; 
-        initStatement = ParseVariableDeclaration();
-    }
-    else
-    {
-        initStatement = ParseExpressionStatement();
+        initStatement = ConsumeIfMatch(Token::Type::Var) ? ParseVariableDeclaration() : ParseExpressionStatement();
     }
 
     IExpressionPtr condition;
@@ -253,10 +237,8 @@ IExpressionPtr Parser::ParseExpression()
 IExpressionPtr Parser::ParseAssignment()
 {
    IExpressionPtr expression = ParseComma(); 
-    if (Match(Token::Type::Equal))
+    if (ConsumeIfMatch(Token::Type::Equal))
     {
-        ++m_current;
-
         struct VariableGetter : IExpressionVisitor, IExpressionVisitorContext
         {
             void VisitVariableExpression(const VariableExpression& variableExpression, IExpressionVisitorContext* context) const
@@ -293,14 +275,12 @@ IExpressionPtr Parser::ParseTernaryConditional()
 {
     IExpressionPtr expression = ParseOr();
 
-    while (Match(Token::Type::Questionmark))
+    while (ConsumeIfMatch(Token::Type::Questionmark))
     {
-        ++m_current; // consume questionmark
         IExpressionPtr trueBranch = ParseExpression();
 
-        if (Match(Token::Type::Colon))
+        if (ConsumeIfMatch(Token::Type::Colon))
         {
-            ++m_current; // consume colon
             IExpressionPtr falseBranch = ParseExpression();
             expression = std::make_unique<TernaryConditionalExpression>(std::move(expression), std::move(trueBranch), std::move(falseBranch));
         }
@@ -380,9 +360,8 @@ IExpressionPtr Parser::ParsePrimary()
     case Token::Type::OpeningParenthesis:
     {
         IExpressionPtr expression = ParseExpression();
-        if (Match(Token::Type::ClosingParenthesis))
+        if (ConsumeIfMatch(Token::Type::ClosingParenthesis))
         {
-            ++m_current; // consume ClosingParenthesis
             return std::make_unique<GroupingExpression>(std::move(expression));
         }
         else
@@ -411,6 +390,16 @@ bool Parser::MatchAny(std::initializer_list<Token::Type> tokenTypes) const
 bool Parser::Match(Token::Type tokenType) const
 {
     return m_tokens[m_current].m_type == tokenType;
+}
+
+bool Parser::ConsumeIfMatch(Token::Type tokenType)
+{
+    if (Match(tokenType))
+    {
+        ++m_current;
+        return true;
+    }
+    return false;
 }
 
 const Token& Parser::Consume(Token::Type tokenType, std::string&& errorMessage)

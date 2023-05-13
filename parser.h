@@ -37,6 +37,7 @@ protected:
 
     bool MatchAny(std::initializer_list<Token::Type> tokenTypes) const;
     bool Match(Token::Type tokenType) const;
+    bool ConsumeIfMatch(Token::Type tokenType);
     const Token& Consume(Token::Type tokenType, std::string&& errorMessage);
 
     bool CanBeUnary(Token::Type tokenType) const;
