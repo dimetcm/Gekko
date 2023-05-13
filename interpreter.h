@@ -18,16 +18,22 @@ struct Interpreter : IExpressionVisitor, IStatementVisitor
     struct Environment
     {
         Environment(Environment* outer = nullptr);
+        ~Environment();
 
         void Define(const Token& token, const Value& value);
         void Assign(const Token& token, const Value& value);
         Value GetValue(const Token& token) const;
+
+        void RequestBreak();
+        void ClearBreak();
+        bool BreakRequested() const;
 
         Environment(const Environment&) = delete;
         Environment& operator=(const Environment&) = delete;
     protected:
         std::map<std::string, Value> m_values;
         Environment* m_outer = nullptr;
+        bool m_break = false;
     };
 
     void Interpret(Environment& environment, const std::vector<IStatementPtr>& program, std::ostream& outputStream, std::ostream& errorsLog) const; 
@@ -65,6 +71,7 @@ protected:
     virtual void VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const override;
     virtual void VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const override;
     virtual void VisitWhileStatement(const WhileStatement& statement, IStatementVisitorContext* context) const override;
+    virtual void VisitBreakStatement(const BreakStatement& statement, IStatementVisitorContext* context) const override;
 
     virtual void VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitBinaryExpression(const BinaryExpression& binaryExpression, IExpressionVisitorContext* context) const override;

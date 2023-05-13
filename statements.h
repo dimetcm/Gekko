@@ -74,3 +74,8 @@ struct WhileStatement : IStatement
     IExpressionPtr m_condition;
     IStatementPtr m_body;
 };
+
+struct BreakStatement : IStatement
+{
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+};

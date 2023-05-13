@@ -59,3 +59,9 @@ void WhileStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorC
 {
     visitor.VisitWhileStatement(*this, context);    
 }
+
+void BreakStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitBreakStatement(*this, context);
+}
+

@@ -232,8 +232,9 @@ Scanner::StaticData::StaticData()
     m_keywordToTokenType.insert({"or", Token::Type::Or});
     m_keywordToTokenType.insert({"if", Token::Type::If});
     m_keywordToTokenType.insert({"else", Token::Type::Else});
-    m_keywordToTokenType.insert({"for", Token::Type::For});
     m_keywordToTokenType.insert({"while", Token::Type::While});
+    m_keywordToTokenType.insert({"for", Token::Type::For});
+    m_keywordToTokenType.insert({"break", Token::Type::Break});
     m_keywordToTokenType.insert({"fun", Token::Type::Fun});
     m_keywordToTokenType.insert({"var", Token::Type::Var});
     m_keywordToTokenType.insert({"class", Token::Type::Class});

@@ -43,6 +43,7 @@ std::string_view TokenTypeToStringView(Token::Type tokenType)
         case Token::Type::Else:                 { static std::string str("Else"); return str; }
         case Token::Type::For:                  { static std::string str("For"); return str; }
         case Token::Type::While:                { static std::string str("While"); return str; }
+        case Token::Type::Break:                { static std::string str("Break"); return str; }
         case Token::Type::Fun:                  { static std::string str("Fun"); return str; }
         case Token::Type::Var:                  { static std::string str("Var"); return str; }
         case Token::Type::Class:                { static std::string str("Class"); return str; }

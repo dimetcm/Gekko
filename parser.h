@@ -10,6 +10,8 @@ using IExpressionPtr = std::unique_ptr<const IExpression>;
 struct IStatement;
 using IStatementPtr = std::unique_ptr<const IStatement>;
 
+struct ParsingContext;
+
 // consumes an array of tokens and produces a programm (for now an array of statements).
 // uses recursive descent for it. 
 class Parser
@@ -42,14 +44,16 @@ protected:
 
     bool CanBeUnary(Token::Type tokenType) const;
     const Token& CurrentToken() const;
+    const Token& PreviousToken() const;
  
-    IStatementPtr ParseDeclaration();
+    IStatementPtr ParseDeclaration(const ParsingContext& context);
     IStatementPtr ParseVariableDeclaration();
-    IStatementPtr ParseStatement();
-    IStatementPtr ParseBlockStatement();
-    IStatementPtr ParseIfStatement();
-    IStatementPtr ParseWhileStatement();
-    IStatementPtr ParseForStatement();
+    IStatementPtr ParseStatement(const ParsingContext& context);
+    IStatementPtr ParseBlockStatement(const ParsingContext& context);
+    IStatementPtr ParseIfStatement(const ParsingContext& context);
+    IStatementPtr ParseWhileStatement(const ParsingContext& context);
+    IStatementPtr ParseForStatement(const ParsingContext& context);
+    IStatementPtr ParseBreakStatement(const ParsingContext& context);
     IStatementPtr ParsePrintStatement();
     IStatementPtr ParseExpressionStatement();
     IExpressionPtr ParseExpression();
@@ -64,7 +68,7 @@ protected:
     IExpressionPtr ParseFactor();
     IExpressionPtr ParseUnary();
     IExpressionPtr ParsePrimary();
-    std::vector<IStatementPtr> ParseBlock();
+    std::vector<IStatementPtr> ParseBlock(const ParsingContext& context);
 
     void Synchronize();
 

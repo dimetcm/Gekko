@@ -36,6 +36,7 @@ print a;
 print b;
 print c;
 
+/*
 {
   var a = 0;
   var temp;
@@ -45,4 +46,28 @@ print c;
     temp = a;
     a = b;
   }
+}*/
+
+{
+    var a = 0;
+    while (a <= 2)
+    {
+      a = a + 1;
+      break;
+    }
+    print a;    
+}
+
+{
+    var a = 0;
+    while (true)
+    {
+      a = a + 1;
+
+      if (a > 5)
+      {
+        break;
+      }
+    }
+    print a;    
 }

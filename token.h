@@ -46,6 +46,7 @@ struct Token
         Else,
         For,
         While,
+        Break,
         Fun,
         Var,
         Class,

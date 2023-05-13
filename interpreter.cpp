@@ -2,6 +2,7 @@
 #include "expressions.h"
 #include "token.h"
 #include "statements.h"
+#include <assert.h>
 
 Interpreter::Environment& Interpreter::GetEnvironment(IExpressionVisitorContext& context)
 {
@@ -23,7 +24,24 @@ std::ostream& Interpreter::GetOutputStream(IStatementVisitorContext& context)
 
 Interpreter::Environment::Environment(Environment* outer)
     : m_outer(outer)
-{}
+{
+    if (m_outer)
+    {
+        assert(!m_outer->m_break);
+    }
+}
+
+Interpreter::Environment::~Environment()
+{
+    if (m_outer)
+    {   
+        m_outer->m_break = m_break;
+    }
+    else
+    {
+        assert(!m_break);
+    }
+}
 
 void Interpreter::Environment::Define(const Token& token, const Value& value)
 {
@@ -62,6 +80,25 @@ Value Interpreter::Environment::GetValue(const Token& token) const
     }
 
     throw InterpreterError(token, "Undefined variable '" + name + "'.");
+}
+
+void Interpreter::Environment::RequestBreak()
+{ 
+    assert(!m_break);
+    m_break = true;
+}
+
+
+void Interpreter::Environment::ClearBreak()
+{
+    assert(m_break);
+    m_break = false;
+}
+
+
+bool Interpreter::Environment::BreakRequested() const
+{
+    return m_break;
 }
 
 bool Interpreter::AreEqual(const Token& token, const Value& lhs, const Value& rhs)
@@ -161,6 +198,10 @@ void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatemen
     for (const IStatementPtr& statement : statement.m_block)
     {
         Execute(*statement, environment, GetOutputStream(*context));
+        if (environment.BreakRequested())
+        {
+            break;
+        }
     }
 }
 
@@ -188,7 +229,17 @@ void Interpreter::VisitWhileStatement(const WhileStatement& statement, IStatemen
     while (Eval(*statement.m_condition, environment).IsTruthy())
     {
         Execute(*statement.m_body, environment, outputStream);
+        if (environment.BreakRequested())
+        {
+            environment.ClearBreak();
+            break;
+        }
     }
+}
+
+void Interpreter::VisitBreakStatement(const BreakStatement& statement, IStatementVisitorContext* context) const
+{
+    GetEnvironment(*context).RequestBreak();
 }
 
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const

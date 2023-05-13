@@ -5,6 +5,13 @@
 #include "gekko.h"
 #include <assert.h>
 
+struct ParsingContext
+{
+    ParsingContext(bool isInsideLoop = false) : m_isInsideLoop(isInsideLoop) {}
+
+    bool m_isInsideLoop = false;
+};
+
 Parser::Parser(const std::vector<Token>& tokens)
     : m_tokens(tokens)
 {}
@@ -17,7 +24,7 @@ std::vector<IStatementPtr> Parser::Parse(std::ostream& logOutput)
     {
         while (!Match(Token::Type::EndOfFile))
         {
-           programme.push_back(ParseDeclaration());
+           programme.push_back(ParseDeclaration(ParsingContext()));
         }
     }
     catch(const ParseError& pe)
@@ -65,14 +72,14 @@ IExpressionPtr Parser::ParseBinaryExpression(std::function<IExpressionPtr()> exp
     return left;
 }
 
-IStatementPtr Parser::ParseDeclaration()
+IStatementPtr Parser::ParseDeclaration(const ParsingContext& context)
 {
     if (ConsumeIfMatch(Token::Type::Var))
     {
         return ParseVariableDeclaration();
     }
 
-    return ParseStatement();
+    return ParseStatement(context);
 }
 
 IStatementPtr Parser::ParseVariableDeclaration()
@@ -89,12 +96,12 @@ IStatementPtr Parser::ParseVariableDeclaration()
     return std::make_unique<VariableDeclarationStatement>(name, std::move(initializer));
 }
 
-std::vector<IStatementPtr> Parser::ParseBlock()
+std::vector<IStatementPtr> Parser::ParseBlock(const ParsingContext& context)
 {
     std::vector<IStatementPtr> block;
     while (!Match(Token::Type::ClosingBrace) && !Match(Token::Type::EndOfFile))
     {
-        block.push_back(ParseDeclaration());
+        block.push_back(ParseDeclaration(context));
     }
 
     Consume(Token::Type::ClosingBrace, "Expect '}' after block.");
@@ -102,7 +109,7 @@ std::vector<IStatementPtr> Parser::ParseBlock()
     return block;
 }
 
-IStatementPtr Parser::ParseStatement()
+IStatementPtr Parser::ParseStatement(const ParsingContext& context)
 {
     if (ConsumeIfMatch(Token::Type::Print))
     {
@@ -111,54 +118,64 @@ IStatementPtr Parser::ParseStatement()
 
     if (ConsumeIfMatch(Token::Type::If))
     {
-        return ParseIfStatement();
+        return ParseIfStatement(context);
     }
 
     if (ConsumeIfMatch(Token::Type::While))
     {
-        return ParseWhileStatement();
+        return ParseWhileStatement(context);
     }
 
     if (ConsumeIfMatch(Token::Type::For))
     {
-        return ParseForStatement();
+        return ParseForStatement(context);
+    }
+
+    if (ConsumeIfMatch(Token::Type::Break))
+    {
+        if (!context.m_isInsideLoop)
+        {
+            throw ParseError(PreviousToken(), "break encountered outside of a loop body.");
+        }
+
+        return ParseBreakStatement(context);
     }
 
     if (ConsumeIfMatch(Token::Type::OpeningBrace))
     {
-        return ParseBlockStatement();
+        return ParseBlockStatement(context);
     }
 
     return ParseExpressionStatement();
 }
 
-IStatementPtr Parser::ParseIfStatement()
+IStatementPtr Parser::ParseIfStatement(const ParsingContext& context)
 {
     Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'if'.");
     IExpressionPtr condition = ParseExpression();
     Consume(Token::Type::ClosingParenthesis, "Expect ')' after if condition.");
 
-    IStatementPtr trueBranch = ParseStatement();
+    IStatementPtr trueBranch = ParseStatement(context);
     IStatementPtr falseBranch = nullptr;
     if (ConsumeIfMatch(Token::Type::Else))
     {
-        falseBranch = ParseStatement();
+        falseBranch = ParseStatement(context);
     }
     
     return std::make_unique<IfStatement>(std::move(condition), std::move(trueBranch), std::move(falseBranch));
 }
 
-IStatementPtr Parser::ParseWhileStatement()
+IStatementPtr Parser::ParseWhileStatement(const ParsingContext& context)
 {
     Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'while'.");
     IExpressionPtr condition = ParseExpression();
     Consume(Token::Type::ClosingParenthesis, "Expect ')' after while condition.");
 
-    IStatementPtr statement = ParseStatement();
+    IStatementPtr statement = ParseStatement(ParsingContext(true));
     return std::make_unique<WhileStatement>(std::move(condition), std::move(statement));
 }
 
-IStatementPtr Parser::ParseForStatement()
+IStatementPtr Parser::ParseForStatement(const ParsingContext& context)
 {
     Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'for'.");
     IStatementPtr initStatement;
@@ -184,7 +201,7 @@ IStatementPtr Parser::ParseForStatement()
 
     Consume(Token::Type::ClosingParenthesis, "Expect ')' after loop increment.");
 
-    IStatementPtr body = ParseStatement();
+    IStatementPtr body = ParseStatement(ParsingContext(true));
 
     std::vector<IStatementPtr> bodyWithIncrement;
     bodyWithIncrement.push_back(std::move(body));
@@ -208,9 +225,15 @@ IStatementPtr Parser::ParseForStatement()
     return std::make_unique<BlockStatement>(std::move(InitializerWithWhile));
 }
 
-IStatementPtr Parser::ParseBlockStatement()
+IStatementPtr Parser::ParseBreakStatement(const ParsingContext& context)
 {
-    return std::make_unique<BlockStatement>(ParseBlock());
+    Consume(Token::Type::Semicolon, "Expect ';' after break.");
+    return std::make_unique<BreakStatement>();
+}
+
+IStatementPtr Parser::ParseBlockStatement(const ParsingContext& context)
+{
+    return std::make_unique<BlockStatement>(ParseBlock(context));
 }
 
 IStatementPtr Parser::ParsePrintStatement()
@@ -417,6 +440,18 @@ const Token& Parser::Consume(Token::Type tokenType, std::string&& errorMessage)
 bool Parser::CanBeUnary(Token::Type tokenType) const
 {
     return tokenType == Token::Type::Minus || tokenType == Token::Type::Plus;
+}
+
+const Token& Parser::CurrentToken() const
+{
+    assert(m_current < m_tokens.size());
+    return m_tokens[m_current];
+}
+
+const Token& Parser::PreviousToken() const
+{
+    assert(m_current > 0 && m_current <= m_tokens.size());
+    return m_tokens[m_current-1];
 }
 
 void Parser::Synchronize()
