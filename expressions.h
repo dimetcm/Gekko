@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include<vector>
 #include "value.h"
 
 struct Token;
@@ -95,4 +96,15 @@ struct LogicalExpression : public IExpression
     IExpressionPtr m_left;
     const Token& m_operator;
     IExpressionPtr m_right;
+};
+
+struct CallExpression : public IExpression
+{
+    CallExpression(IExpressionPtr calle, const Token& token, std::vector<IExpressionPtr>&& arguments);
+
+    virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
+
+    const Token& m_token;
+    IExpressionPtr m_calle;
+    std::vector<IExpressionPtr> m_arguments;
 };

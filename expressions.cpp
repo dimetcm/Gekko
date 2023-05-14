@@ -84,3 +84,15 @@ void LogicalExpression::Accept(const IExpressionVisitor& visitor, IExpressionVis
 {
     visitor.VisitLogicalExpression(*this, context);
 }
+
+CallExpression::CallExpression(IExpressionPtr calle, const Token& token, std::vector<IExpressionPtr>&& arguments)
+    : m_calle(std::move(calle))
+    , m_token(token)
+    , m_arguments(std::move(arguments))
+{
+}
+
+void CallExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
+{
+    visitor.VisitCallExpression(*this, context);
+}

@@ -367,7 +367,32 @@ IExpressionPtr Parser::ParseUnary()
         return std::make_unique<UnaryExpression>(op, ParseUnary());
     }
 
-    return ParsePrimary();
+    return ParseCall();
+}
+
+IExpressionPtr Parser::ParseCall()
+{
+    IExpressionPtr expression = ParsePrimary();
+    while (Match(Token::Type::OpeningBrace))
+    {
+        auto parseFininshCall = [this](IExpressionPtr calle) -> IExpressionPtr
+        {
+            std::vector<IExpressionPtr> argumets;
+            if (Match(Token::Type::ClosingBrace))
+            {
+                do
+                {
+                    argumets.emplace_back(ParseExpression());
+                } while (ConsumeIfMatch(Token::Type::Comma));
+            }
+
+            Consume(Token::Type::ClosingBrace, "Expect ')' after arguments.");
+            return std::make_unique<CallExpression>(std::move(calle), PreviousToken(), std::move(argumets));
+        };
+        expression = parseFininshCall(std::move(expression));
+    }
+
+    return expression;
 }
 
 IExpressionPtr Parser::ParsePrimary()

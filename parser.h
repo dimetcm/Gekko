@@ -67,6 +67,7 @@ protected:
     IExpressionPtr ParseTerm();
     IExpressionPtr ParseFactor();
     IExpressionPtr ParseUnary();
+    IExpressionPtr ParseCall();
     IExpressionPtr ParsePrimary();
     std::vector<IStatementPtr> ParseBlock(const ParsingContext& context);
 
