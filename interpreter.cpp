@@ -2,7 +2,9 @@
 #include "expressions.h"
 #include "token.h"
 #include "statements.h"
+#include "callable.h"
 #include <assert.h>
+#include <sstream>
 
 Interpreter::Environment& Interpreter::GetEnvironment(IExpressionVisitorContext& context)
 {
@@ -401,6 +403,38 @@ void Interpreter::VisitLogicalExpression(const LogicalExpression& logicalExpress
     {
         throw InterpreterError(logicalExpression.m_operator, "unsupported logical operator");
     }
+}
+
+void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const
+{
+    Value calle = Eval(*callExpression.m_calle, GetEnvironment(*context));
+
+    if (!calle.GetCallable())
+    {
+        throw InterpreterError(callExpression.m_token, "Can only call functions and classes.");
+    }
+
+    const ICallable* callable = *calle.GetCallable();
+
+    assert(callable);
+
+    if (callable->Arity() != callExpression.m_arguments.size())
+    {
+        std::stringstream message;
+        message << "Expected " << callable->Arity() << " arguments, but got " << callExpression.m_arguments.size() << '.';   
+        throw InterpreterError(callExpression.m_token, message.str());
+    }
+
+    std::vector<Value> arguments;
+    arguments.reserve(callExpression.m_arguments.size());
+
+    for (const IExpressionPtr& expression : callExpression.m_arguments)
+    {
+        arguments.emplace_back(Eval(*expression, GetEnvironment(*context)));
+    }
+
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+    result->m_result = callable->Call(arguments);
 }
 
 void Interpreter::Execute(const IStatement& statement, Environment& environment, std::ostream& outputStream) const

@@ -81,6 +81,8 @@ protected:
     virtual void VisitVariableExpression(const VariableExpression& variableExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitAssignmentExpression(const AssignmentExpression& assignmentExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitLogicalExpression(const LogicalExpression& logicalExpression, IExpressionVisitorContext* context) const override;
+    virtual void VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const override;
+
 
     void Execute(const IStatement& statement, Environment& environment, std::ostream& outputStream) const;
     Value Eval(const IExpression& expression, Environment& environment) const;

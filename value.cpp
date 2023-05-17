@@ -1,4 +1,5 @@
 #include "value.h"
+#include "callable.h"
 
 Value::Value()
 {}
@@ -16,6 +17,10 @@ Value::Value(const std::string& value)
     : m_value(std::make_any<std::string>(value))
 {}
 
+Value::Value(const ICallable& value)
+    : m_value(std::make_any<const ICallable*>(&value))
+{}
+
 const double* Value::GetNumber() const
 {
     return std::any_cast<double>(&m_value);
@@ -24,6 +29,12 @@ const double* Value::GetNumber() const
 const std::string* Value::GetString() const
 {
     return std::any_cast<std::string>(&m_value);
+}
+
+const ICallable* const* Value::GetCallable() const
+{
+    const ICallable* const* callable = std::any_cast<const ICallable*>(&m_value);
+    return callable;
 }
 
 bool Value::IsTruthy() const

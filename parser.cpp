@@ -383,6 +383,10 @@ IExpressionPtr Parser::ParseCall()
                 do
                 {
                     argumets.emplace_back(ParseExpression());
+                    if (argumets.size() >= 255)
+                    {
+                        Gekko::ReportError(CurrentToken(), "Can't have more than 255 arguments.");
+                    }
                 } while (ConsumeIfMatch(Token::Type::Comma));
             }
 
