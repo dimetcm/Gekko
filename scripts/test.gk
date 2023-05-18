@@ -71,3 +71,5 @@ print c;
     }
     print a;    
 }
+
+print clock();

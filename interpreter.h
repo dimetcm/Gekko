@@ -20,7 +20,7 @@ struct Interpreter : IExpressionVisitor, IStatementVisitor
         Environment(Environment* outer = nullptr);
         ~Environment();
 
-        void Define(const Token& token, const Value& value);
+        void Define(std::string_view name, const Value& value);
         void Assign(const Token& token, const Value& value);
         Value GetValue(const Token& token) const;
 
@@ -83,9 +83,10 @@ protected:
     virtual void VisitLogicalExpression(const LogicalExpression& logicalExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const override;
 
-
     void Execute(const IStatement& statement, Environment& environment, std::ostream& outputStream) const;
     Value Eval(const IExpression& expression, Environment& environment) const;
+
+    void RegisterNativeFunctions(Environment& environment) const;
 
     static bool AreEqual(const Token& token, const Value& lhs, const Value& rhs);
     static double GetNumberOperand(const Token& token, const Value& lhs);
@@ -93,4 +94,5 @@ protected:
     static Environment& GetEnvironment(IExpressionVisitorContext& context);
     static Environment& GetEnvironment(IStatementVisitorContext& context);
     static std::ostream& GetOutputStream(IStatementVisitorContext& context);
+
 };

@@ -3,6 +3,7 @@
 #include "token.h"
 #include "statements.h"
 #include "callable.h"
+#include "nativefunctions.h"
 #include <assert.h>
 #include <sstream>
 
@@ -45,9 +46,9 @@ Interpreter::Environment::~Environment()
     }
 }
 
-void Interpreter::Environment::Define(const Token& token, const Value& value)
+void Interpreter::Environment::Define(std::string_view name, const Value& value)
 {
-     m_values.insert_or_assign(std::string(token.m_lexeme), value);
+     m_values.insert_or_assign(std::string(name), value);
 }
 
 void Interpreter::Environment::Assign(const Token& token, const Value& value)
@@ -158,6 +159,8 @@ double Interpreter::GetNumberOperand(const Token& token, const Value& lhs)
 
 void Interpreter::Interpret(Environment& environment, const std::vector<IStatementPtr>& program, std::ostream& outputStream, std::ostream& errorsLog) const
 {
+    RegisterNativeFunctions(environment);
+
     try
     {
         for (const IStatementPtr& statement : program)
@@ -191,7 +194,7 @@ void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationSta
         value = Eval(*statement.m_initializer, environment);
     }
 
-    environment.Define(statement.m_name, value);
+    environment.Define(statement.m_name.m_lexeme, value);
 }
 
 void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const
@@ -448,4 +451,11 @@ Value Interpreter::Eval(const IExpression& expression, Environment& environment)
     ExpressionVisitorContext context(environment);
     expression.Accept(*this, &context);
     return context.m_result;
+}
+
+void Interpreter::RegisterNativeFunctions(Environment& environment) const
+{
+    static ClockCallable clockCallable;
+    environment.Define("clock", Value(clockCallable));
+
 }

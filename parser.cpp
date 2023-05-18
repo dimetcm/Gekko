@@ -373,12 +373,12 @@ IExpressionPtr Parser::ParseUnary()
 IExpressionPtr Parser::ParseCall()
 {
     IExpressionPtr expression = ParsePrimary();
-    while (Match(Token::Type::OpeningBrace))
+    while (ConsumeIfMatch(Token::Type::OpeningParenthesis))
     {
         auto parseFininshCall = [this](IExpressionPtr calle) -> IExpressionPtr
         {
             std::vector<IExpressionPtr> argumets;
-            if (Match(Token::Type::ClosingBrace))
+            if (!Match(Token::Type::ClosingParenthesis))
             {
                 do
                 {
@@ -390,7 +390,7 @@ IExpressionPtr Parser::ParseCall()
                 } while (ConsumeIfMatch(Token::Type::Comma));
             }
 
-            Consume(Token::Type::ClosingBrace, "Expect ')' after arguments.");
+            Consume(Token::Type::ClosingParenthesis, "Expect ')' after arguments.");
             return std::make_unique<CallExpression>(std::move(calle), PreviousToken(), std::move(argumets));
         };
         expression = parseFininshCall(std::move(expression));
