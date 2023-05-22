@@ -248,6 +248,23 @@ void runTests()
             }
             assert(outputStream.str() == "aaaaaaaa\n");
         }
+
+        { // parsing function declaration
+            Scanner scanner(
+                "fun TestFun(a, b)"
+                "{"
+                "print a + b;"
+                "}"
+            );
+            MockedParser parser(scanner.Tokens());
+            std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
+            assert(programm.size() == 1); // function declaration only
+            const FunctionDeclarationStatement* functionDeclaration = dynamic_cast<const FunctionDeclarationStatement*>(programm[0].get());
+            assert(functionDeclaration->m_name.m_lexeme == "TestFun");
+            assert(functionDeclaration->m_parameters.size() == 2);
+            assert(functionDeclaration->m_parameters[0].get().m_lexeme == "a");
+            assert(functionDeclaration->m_parameters[1].get().m_lexeme == "b");
+        }
     }
 }
 

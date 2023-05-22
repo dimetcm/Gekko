@@ -48,6 +48,8 @@ protected:
  
     IStatementPtr ParseDeclaration(const ParsingContext& context);
     IStatementPtr ParseVariableDeclaration();
+    IStatementPtr ParseFunctionDeclaration(const ParsingContext& context);
+
     IStatementPtr ParseStatement(const ParsingContext& context);
     IStatementPtr ParseBlockStatement(const ParsingContext& context);
     IStatementPtr ParseIfStatement(const ParsingContext& context);

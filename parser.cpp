@@ -78,6 +78,10 @@ IStatementPtr Parser::ParseDeclaration(const ParsingContext& context)
     {
         return ParseVariableDeclaration();
     }
+    else if (ConsumeIfMatch(Token::Type::Fun))
+    {
+        return ParseFunctionDeclaration(context);
+    }
 
     return ParseStatement(context);
 }
@@ -94,6 +98,35 @@ IStatementPtr Parser::ParseVariableDeclaration()
 
     Consume(Token::Type::Semicolon, "Expect ';' after variable declaration.");
     return std::make_unique<VariableDeclarationStatement>(name, std::move(initializer));
+}
+
+IStatementPtr Parser::ParseFunctionDeclaration(const ParsingContext& context)
+{
+    const Token& name = Consume(Token::Type::Identifier, "Expect function name.");
+    Consume(Token::Type::OpeningParenthesis, "Expect '(' after function name.");
+
+    FunctionDeclarationStatement::ParametersType parameters;
+
+    if (!Match(Token::Type::ClosingParenthesis))
+    {
+        do
+        {
+            parameters.emplace_back(Consume(Token::Type::Identifier, "Expect parameter name."));
+            if (parameters.size() >= 255)
+            {
+                Gekko::ReportError(CurrentToken(), "Can't have more than 255 parameters.");
+            }
+
+        } while (ConsumeIfMatch(Token::Type::Comma));
+        
+    }
+
+    Consume(Token::Type::ClosingParenthesis, "Expect ')' after function parameters.");
+
+    Consume(Token::Type::OpeningBrace, "Expect '{' before function body.");
+
+    FunctionDeclarationStatement::BodyType functionBody = ParseBlock(context);
+    return std::make_unique<FunctionDeclarationStatement>(name, std::move(parameters), std::move(functionBody));
 }
 
 std::vector<IStatementPtr> Parser::ParseBlock(const ParsingContext& context)

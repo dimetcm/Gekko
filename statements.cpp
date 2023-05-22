@@ -30,6 +30,18 @@ void VariableDeclarationStatement::Accept(const IStatementVisitor& visitor, ISta
     visitor.VisitVariableDeclarationStatement(*this, context);
 }
 
+FunctionDeclarationStatement::FunctionDeclarationStatement(
+    const Token& name, ParametersType&& parameters, BodyType&& body)
+    : m_name(name)
+    , m_parameters(std::move(parameters))
+    , m_body(std::move(body))
+{}
+
+void FunctionDeclarationStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitFunctionDeclarationStatement(*this, context);
+}
+
 BlockStatement::BlockStatement(std::vector<IStatementPtr>&& block)
     : m_block(std::move(block))
 {}

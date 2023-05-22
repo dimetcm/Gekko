@@ -48,6 +48,20 @@ struct VariableDeclarationStatement : IStatement
     IExpressionPtr m_initializer;
 };
 
+struct FunctionDeclarationStatement : IStatement
+{
+    using ParametersType = std::vector<std::reference_wrapper<const Token>>;
+    using BodyType = std::vector<IStatementPtr>;
+
+    FunctionDeclarationStatement(const Token& name, ParametersType&& parameters, BodyType&& body);
+
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+
+    const Token& m_name;
+    ParametersType m_parameters;
+    BodyType m_body;
+};
+
 struct BlockStatement : IStatement
 {
     explicit BlockStatement(std::vector<IStatementPtr>&& block);
