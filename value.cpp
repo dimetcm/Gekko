@@ -17,8 +17,8 @@ Value::Value(const std::string& value)
     : m_value(std::make_any<std::string>(value))
 {}
 
-Value::Value(const ICallable& value)
-    : m_value(std::make_any<const ICallable*>(&value))
+Value::Value(std::shared_ptr<const ICallable> value)
+    : m_value(std::make_any<std::shared_ptr<const ICallable>>(value))
 {}
 
 const double* Value::GetNumber() const
@@ -31,10 +31,14 @@ const std::string* Value::GetString() const
     return std::any_cast<std::string>(&m_value);
 }
 
-const ICallable* const* Value::GetCallable() const
+const ICallable* Value::GetCallable() const
 {
-    const ICallable* const* callable = std::any_cast<const ICallable*>(&m_value);
-    return callable;
+    if (const std::shared_ptr<const ICallable>* callable = std::any_cast<std::shared_ptr<const ICallable>>(&m_value))
+    {
+        return callable->get();
+    }
+
+    return nullptr;
 }
 
 bool Value::IsTruthy() const

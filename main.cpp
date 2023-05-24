@@ -13,13 +13,13 @@
 #include "mocks/mockedinterpreter.h"
 #include "mocks/mockedparser.h"
 
-void run(Interpreter::Environment& environment, std::string_view source)
+void run(Environment& environment, std::string_view source)
 {
     Scanner scanner(source);
 
     Parser parser(scanner.Tokens());
     std::vector<IStatementPtr> program = parser.Parse(std::cout);
-    Interpreter interpreter;
+    Interpreter interpreter(environment);
     interpreter.Interpret(environment, program, std::cout, std::cerr);
 }
 
@@ -48,14 +48,14 @@ void runFile(const char* filename)
     std::optional<std::string> script = GetFileContent(filename);
     if (script.has_value())
     {
-        Interpreter::Environment environment;
+        Environment environment;
         run(environment, script.value());
     }
 }
 
 void runPrompt()
 {
-    Interpreter::Environment environment;
+    Environment environment;
 
     std::string line; 
 
@@ -115,8 +115,9 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
-            MockedInterpreter interpreter;
-            Interpreter::Environment environment;
+            
+            Environment environment;
+            MockedInterpreter interpreter(environment);
             Value result = interpreter.Eval(*expression, environment);
 
             assert(result.GetNumber() && *result.GetNumber() == 22);
@@ -127,8 +128,8 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
-            MockedInterpreter interpreter;
-            Interpreter::Environment environment;
+            Environment environment;
+            MockedInterpreter interpreter(environment);
             Value result = interpreter.Eval(*expression, environment);
 
             assert(result.GetBoolean() && *result.GetBoolean());
@@ -139,8 +140,8 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
-            MockedInterpreter interpreter;
-            Interpreter::Environment environment;
+            Environment environment;
+            MockedInterpreter interpreter(environment);
             Value result = interpreter.Eval(*expression, environment);
 
             assert(result.GetBoolean() && !*result.GetBoolean());
@@ -151,12 +152,12 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
             assert(programm.size() == 2);
-            MockedInterpreter interpreter;
             MockedEnvironment environment;
+            MockedInterpreter interpreter(environment);
             std::stringstream outputStream;
             for (const IStatementPtr& statement : programm)
             {
-                interpreter.Execute(*statement, environment, outputStream);
+                interpreter.Execute(*statement, environment);
             }
 
             assert(environment.Hasvalue("a"));
@@ -174,12 +175,12 @@ void runTests()
             );
             MockedParser parser(scanner.Tokens());
             std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
-            MockedInterpreter interpreter;
             MockedEnvironment environment;
+            MockedInterpreter interpreter(environment);
             std::stringstream outputStream;
             for (const IStatementPtr& statement : programm)
             {
-                interpreter.Execute(*statement, environment, outputStream);
+                interpreter.Execute(*statement, environment);
             }
 
             assert(environment.Hasvalue("a"));
@@ -198,13 +199,13 @@ void runTests()
                 "}"
             );
             MockedParser parser(scanner.Tokens());
-            std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
-            MockedInterpreter interpreter;
-            MockedEnvironment environment;
             std::stringstream outputStream;
-            for (const IStatementPtr& statement : programm)
+            Environment environment(outputStream);
+            MockedInterpreter interpreter(environment);
+
+            for (const IStatementPtr& statement : parser.Parse(std::cerr))
             {
-                interpreter.Execute(*statement, environment, outputStream);
+                interpreter.Execute(*statement, environment);
             }
             assert(outputStream.str() == "true\n");
         }
@@ -215,13 +216,13 @@ void runTests()
                 "print nil or \"yes\";" 
             );
             MockedParser parser(scanner.Tokens());
-            std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
-            MockedInterpreter interpreter;
-            MockedEnvironment environment;
             std::stringstream outputStream;
-            for (const IStatementPtr& statement : programm)
+            Environment environment(outputStream);
+            MockedInterpreter interpreter(environment);
+            
+            for (const IStatementPtr& statement : parser.Parse(std::cerr))
             {
-                interpreter.Execute(*statement, environment, outputStream);
+                interpreter.Execute(*statement, environment);
             }
             assert(outputStream.str() == "hi\nyes\n");
         }
@@ -238,13 +239,13 @@ void runTests()
                 "print a;" 
             );
             MockedParser parser(scanner.Tokens());
-            std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
-            MockedInterpreter interpreter;
-            MockedEnvironment environment;
             std::stringstream outputStream;
-            for (const IStatementPtr& statement : programm)
+            Environment environment(outputStream);
+            MockedInterpreter interpreter(environment);
+
+            for (const IStatementPtr& statement : parser.Parse(std::cerr))
             {
-                interpreter.Execute(*statement, environment, outputStream);
+                interpreter.Execute(*statement, environment);
             }
             assert(outputStream.str() == "aaaaaaaa\n");
         }
@@ -264,6 +265,26 @@ void runTests()
             assert(functionDeclaration->m_parameters.size() == 2);
             assert(functionDeclaration->m_parameters[0].get().m_lexeme == "a");
             assert(functionDeclaration->m_parameters[1].get().m_lexeme == "b");
+        }
+
+        { // executing function test
+            Scanner scanner(
+                "fun TestFun(a, b)"
+                "{"
+                "print a + b;"
+                "}"
+                "TestFun(\"a\", \"b\");"
+            );
+            Parser parser(scanner.Tokens());
+            std::stringstream outputStream;
+            Environment environment(outputStream);
+            Interpreter interpreter(environment);
+
+            for (const IStatementPtr& statement : parser.Parse(std::cerr))
+            {
+                interpreter.Execute(*statement, environment);
+            }
+            assert(outputStream.str() == "ab\n");
         }
     }
 }

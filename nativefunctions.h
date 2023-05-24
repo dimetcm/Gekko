@@ -9,7 +9,7 @@ public:
     {}
 
 protected:
-    virtual Value Call(const std::vector<Value>& arguments) const override
+    virtual Value Call(const Interpreter& interpreter, Environment& globals, const std::vector<Value>& arguments) const override
     {
         using namespace std::chrono;
         system_clock::time_point time = system_clock::now();
@@ -19,7 +19,7 @@ protected:
 
     virtual int Arity() const override{ return 0; }
 
-    virtual std::string ToString() const override { return "<native clock fn>"; }
+    virtual std::string_view ToString() const override { return "<native clock fn>"; }
 
     std::chrono::system_clock::time_point m_creationTime;
 };

@@ -287,12 +287,17 @@ IStatementPtr Parser::ParseExpressionStatement()
 
 IExpressionPtr Parser::ParseExpression()
 {
-    return ParseAssignment();
+    return ParseComma();
+}
+
+IExpressionPtr Parser::ParseComma()
+{
+    return ParseBinaryExpression(std::bind(&Parser::ParseAssignment, this), {Token::Type::Comma});
 }
 
 IExpressionPtr Parser::ParseAssignment()
 {
-   IExpressionPtr expression = ParseComma(); 
+   IExpressionPtr expression = ParseTernaryConditional(); 
     if (ConsumeIfMatch(Token::Type::Equal))
     {
         struct VariableGetter : IExpressionVisitor, IExpressionVisitorContext
@@ -321,11 +326,6 @@ IExpressionPtr Parser::ParseAssignment()
 
     return expression;
  }
-
-IExpressionPtr Parser::ParseComma()
-{
-    return ParseBinaryExpression(std::bind(&Parser::ParseTernaryConditional, this), {Token::Type::Comma});
-}
 
 IExpressionPtr Parser::ParseTernaryConditional()
 {
@@ -415,7 +415,7 @@ IExpressionPtr Parser::ParseCall()
             {
                 do
                 {
-                    argumets.emplace_back(ParseExpression());
+                    argumets.emplace_back(ParseAssignment());
                     if (argumets.size() >= 255)
                     {
                         Gekko::ReportError(CurrentToken(), "Can't have more than 255 arguments.");

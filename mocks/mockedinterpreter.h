@@ -2,7 +2,7 @@
 
 #include "../interpreter.h"
 
-struct MockedEnvironment : Interpreter::Environment
+struct MockedEnvironment : Environment
 {
     bool Hasvalue(const std::string& name) const { return m_values.find(name) != m_values.end(); }
     Value GetValue(const std::string& name) const { return m_values.find(name)->second; }
@@ -10,9 +10,11 @@ struct MockedEnvironment : Interpreter::Environment
 
 struct MockedInterpreter : Interpreter
 {
-    void Execute(const IStatement& statement, Environment& environment, std::ostream& outputStream) const
+    MockedInterpreter(Environment& environment) : Interpreter(environment) {}
+    
+    void Execute(const IStatement& statement, Environment& environment) const
     {
-        Interpreter::Execute(statement, environment, outputStream);
+        Interpreter::Execute(statement, environment);
     }
 
     Value Eval(const IExpression& expression, Environment& environment) const

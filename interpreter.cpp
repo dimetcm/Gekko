@@ -2,39 +2,35 @@
 #include "expressions.h"
 #include "token.h"
 #include "statements.h"
-#include "callable.h"
 #include "nativefunctions.h"
+#include "function.h"
 #include <assert.h>
 #include <sstream>
 
-Interpreter::Environment& Interpreter::GetEnvironment(IExpressionVisitorContext& context)
+Environment& Interpreter::GetEnvironment(IExpressionVisitorContext& context)
 {
     ExpressionVisitorContext* internalContext = static_cast<ExpressionVisitorContext*>(&context);
     return internalContext->m_environment;
 }
 
-Interpreter::Environment& Interpreter::GetEnvironment(IStatementVisitorContext& context)
+Environment& Interpreter::GetEnvironment(IStatementVisitorContext& context)
 {
     StatementVisitorContext* internalContext = static_cast<StatementVisitorContext*>(&context);
     return internalContext->m_environment;
 }
 
-std::ostream& Interpreter::GetOutputStream(IStatementVisitorContext& context)
+Environment::Environment(std::ostream& output)
+    : m_outputStream(output)
+{}
+
+Environment::Environment(Environment& outer)
+    : m_outer(&outer)
+    , m_outputStream(outer.m_outputStream)
 {
-    StatementVisitorContext* internalContext = static_cast<StatementVisitorContext*>(&context);
-    return internalContext->m_outputStream;
+    assert(!m_outer->m_break);
 }
 
-Interpreter::Environment::Environment(Environment* outer)
-    : m_outer(outer)
-{
-    if (m_outer)
-    {
-        assert(!m_outer->m_break);
-    }
-}
-
-Interpreter::Environment::~Environment()
+Environment::~Environment()
 {
     if (m_outer)
     {   
@@ -46,12 +42,12 @@ Interpreter::Environment::~Environment()
     }
 }
 
-void Interpreter::Environment::Define(std::string_view name, const Value& value)
+void Environment::Define(std::string_view name, const Value& value)
 {
      m_values.insert_or_assign(std::string(name), value);
 }
 
-void Interpreter::Environment::Assign(const Token& token, const Value& value)
+void Environment::Assign(const Token& token, const Value& value)
 {
     std::string name(token.m_lexeme);
     auto it = m_values.find(name);
@@ -65,11 +61,11 @@ void Interpreter::Environment::Assign(const Token& token, const Value& value)
     }
     else
     {
-        throw InterpreterError(token, "Undefined variable '" + name + "'.");
+        throw Interpreter::InterpreterError(token, "Undefined variable '" + name + "'.");
     }
 }
 
-Value Interpreter::Environment::GetValue(const Token& token) const
+Value Environment::GetValue(const Token& token) const
 {
     std::string name(token.m_lexeme);
     auto it = m_values.find(name);
@@ -82,26 +78,46 @@ Value Interpreter::Environment::GetValue(const Token& token) const
         return m_outer->GetValue(token);
     }
 
-    throw InterpreterError(token, "Undefined variable '" + name + "'.");
+    throw Interpreter::InterpreterError(token, "Undefined variable '" + name + "'.");
 }
 
-void Interpreter::Environment::RequestBreak()
+void Environment::RequestBreak()
 { 
     assert(!m_break);
     m_break = true;
 }
 
 
-void Interpreter::Environment::ClearBreak()
+void Environment::ClearBreak()
 {
     assert(m_break);
     m_break = false;
 }
 
 
-bool Interpreter::Environment::BreakRequested() const
+bool Environment::BreakRequested() const
 {
     return m_break;
+}
+
+Environment& Environment::GetGlobalEnvironment()
+{
+    if (m_outer)
+    {
+        return GetGlobalEnvironment();
+    }
+
+    return *this;
+}
+
+std::ostream& Environment::GetOutputStream()
+{
+    return m_outputStream;
+}
+
+Interpreter::Interpreter(Environment& environment)
+{
+    RegisterNativeFunctions(environment);
 }
 
 bool Interpreter::AreEqual(const Token& token, const Value& lhs, const Value& rhs)
@@ -157,15 +173,13 @@ double Interpreter::GetNumberOperand(const Token& token, const Value& lhs)
     throw InterpreterError(token, "Operand must be a number.");
 }
 
-void Interpreter::Interpret(Environment& environment, const std::vector<IStatementPtr>& program, std::ostream& outputStream, std::ostream& errorsLog) const
+void Interpreter::Interpret(Environment& environment, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const
 {
-    RegisterNativeFunctions(environment);
-
     try
     {
         for (const IStatementPtr& statement : program)
         {
-            Execute(*statement, environment, outputStream);
+            Execute(*statement, environment);
         }
     }
     catch(const InterpreterError& ie)
@@ -181,8 +195,9 @@ void Interpreter::VisitExpressionStatement(const ExpressionStatement& statement,
 
 void Interpreter::VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const
 {
-    Value value = Eval(*statement.m_expression, GetEnvironment(*context));
-    GetOutputStream(*context) << value.ToString() << std::endl;
+    Environment& environment = GetEnvironment(*context);
+    Value value = Eval(*statement.m_expression, environment);
+    environment.GetOutputStream() << value.ToString() << std::endl;
 }
 
 void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationStatement& statement, IStatementVisitorContext* context) const
@@ -197,12 +212,20 @@ void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationSta
     environment.Define(statement.m_name.m_lexeme, value);
 }
 
+void Interpreter::VisitFunctionDeclarationStatement(const FunctionDeclarationStatement& statement, IStatementVisitorContext* context) const
+{
+    Environment& environment = GetEnvironment(*context);
+
+    std::shared_ptr<const ICallable> valuePtr = std::make_shared<const Function>(statement);
+    environment.Define(statement.m_name.m_lexeme, Value(valuePtr));
+}
+
 void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const
 {
-    Environment environment(&GetEnvironment(*context));
+    Environment environment(GetEnvironment(*context));
     for (const IStatementPtr& statement : statement.m_block)
     {
-        Execute(*statement, environment, GetOutputStream(*context));
+        Execute(*statement, environment);
         if (environment.BreakRequested())
         {
             break;
@@ -213,27 +236,25 @@ void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatemen
 void Interpreter::VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const
 {
     Environment& environment = GetEnvironment(*context);
-    std::ostream& outputStream = GetOutputStream(*context);
 
     Value conditionResult = Eval(*statement.m_condition, environment);
     if (conditionResult.IsTruthy())
     {
-        Execute(*statement.m_trueBranch, environment, outputStream);
+        Execute(*statement.m_trueBranch, environment);
     }
     else if (statement.m_falseBranch)
     {
-        Execute(*statement.m_falseBranch, environment, outputStream);
+        Execute(*statement.m_falseBranch, environment);
     }
 }
 
 void Interpreter::VisitWhileStatement(const WhileStatement& statement, IStatementVisitorContext* context) const
 {
     Environment& environment = GetEnvironment(*context);
-    std::ostream& outputStream = GetOutputStream(*context);
 
     while (Eval(*statement.m_condition, environment).IsTruthy())
     {
-        Execute(*statement.m_body, environment, outputStream);
+        Execute(*statement.m_body, environment);
         if (environment.BreakRequested())
         {
             environment.ClearBreak();
@@ -417,7 +438,7 @@ void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExp
         throw InterpreterError(callExpression.m_token, "Can only call functions and classes.");
     }
 
-    const ICallable* callable = *calle.GetCallable();
+    const ICallable* callable = calle.GetCallable();
 
     assert(callable);
 
@@ -437,12 +458,12 @@ void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExp
     }
 
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
-    result->m_result = callable->Call(arguments);
+    result->m_result = callable->Call(*this, GetEnvironment(*context).GetGlobalEnvironment(), arguments);
 }
 
-void Interpreter::Execute(const IStatement& statement, Environment& environment, std::ostream& outputStream) const
+void Interpreter::Execute(const IStatement& statement, Environment& environment) const
 {
-    StatementVisitorContext context(environment, outputStream);
+    StatementVisitorContext context(environment);
     statement.Accept(*this, &context);
 }
 
@@ -455,7 +476,6 @@ Value Interpreter::Eval(const IExpression& expression, Environment& environment)
 
 void Interpreter::RegisterNativeFunctions(Environment& environment) const
 {
-    static ClockCallable clockCallable;
+    std::shared_ptr<const ICallable> clockCallable = std::make_shared<const ClockCallable>();
     environment.Define("clock", Value(clockCallable));
-
 }
