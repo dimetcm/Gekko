@@ -20,7 +20,7 @@ void run(Environment& environment, std::string_view source)
     Parser parser(scanner.Tokens());
     std::vector<IStatementPtr> program = parser.Parse(std::cout);
     Interpreter interpreter(environment);
-    interpreter.Interpret(environment, program, std::cout, std::cerr);
+    interpreter.Interpret(environment, program, std::cerr);
 }
 
 std::optional<std::string> GetFileContent(const char* filename)
