@@ -78,6 +78,10 @@ std::string Value::ToString() const
     {
         return *value ? "true" : "false";
     }
+    else if (const ICallable* value = GetCallable())
+    {
+        return std::string(value->ToString());
+    }
 
     return "Unsupported value type";
 }

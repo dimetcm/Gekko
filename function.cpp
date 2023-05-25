@@ -35,7 +35,7 @@ int Function::Arity() const
     return static_cast<int>(m_declaration.m_parameters.size());
 }
 
-std::string_view Function::ToString() const
+std::string Function::ToString() const
 {
     return "<fn " + std::string(m_declaration.m_name.m_lexeme) + ">"; 
 }
