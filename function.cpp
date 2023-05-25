@@ -19,12 +19,15 @@ Value Function::Call(const Interpreter& interpreter, Environment& globalEnvironm
     {
         const Token& token = m_declaration.m_parameters[i];
         localEnvironment.Define(token.m_lexeme, arguments[i]);
-
     }
 
     for (const IStatementPtr& statement : m_declaration.m_body)
     {
-        interpreter.Execute(*statement, localEnvironment);        
+        interpreter.Execute(*statement, localEnvironment);
+        if (localEnvironment.ReturnRequested())
+        {
+            return localEnvironment.GetReturnValue();
+        }
     }
 
     return Value();

@@ -27,6 +27,11 @@ struct Environment
     void ClearBreak();
     bool BreakRequested() const;
 
+    void RequestReturn(Value returnValue);
+    void ClearReturn();
+    bool ReturnRequested() const;
+    const Value& GetReturnValue() const;
+
     Environment& GetGlobalEnvironment();
 
     std::ostream& GetOutputStream();
@@ -36,8 +41,10 @@ struct Environment
 
 protected:
     std::map<std::string, Value> m_values;
+    Value m_returnValue;
     Environment* m_outer = nullptr;
     bool m_break = false;
+    bool m_return = false;
     std::ostream& m_outputStream; 
 };
 
@@ -81,6 +88,7 @@ protected:
     virtual void VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const override;
     virtual void VisitWhileStatement(const WhileStatement& statement, IStatementVisitorContext* context) const override;
     virtual void VisitBreakStatement(const BreakStatement& statement, IStatementVisitorContext* context) const override;
+    virtual void VisitReturnStatement(const ReturnStatement& statement, IStatementVisitorContext* context) const override;
 
     virtual void VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitBinaryExpression(const BinaryExpression& binaryExpression, IExpressionVisitorContext* context) const override;

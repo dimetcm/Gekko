@@ -56,6 +56,7 @@ protected:
     IStatementPtr ParseWhileStatement(const ParsingContext& context);
     IStatementPtr ParseForStatement(const ParsingContext& context);
     IStatementPtr ParseBreakStatement(const ParsingContext& context);
+    IStatementPtr ParseReturnStatement(const ParsingContext& context);
     IStatementPtr ParsePrintStatement();
     IStatementPtr ParseExpressionStatement();
     IExpressionPtr ParseExpression();

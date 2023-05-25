@@ -90,3 +90,8 @@ bool Value::HasValue() const
 {
     return m_value.has_value();
 }
+
+bool Value::IsNil() const
+{
+    return !HasValue();
+}

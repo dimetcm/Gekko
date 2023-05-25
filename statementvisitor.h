@@ -13,6 +13,7 @@ struct BlockStatement;
 struct IfStatement;
 struct WhileStatement;
 struct BreakStatement;
+struct ReturnStatement;
 
 struct IStatementVisitor
 {
@@ -26,4 +27,5 @@ struct IStatementVisitor
     virtual void VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const {}
     virtual void VisitWhileStatement(const WhileStatement& statement, IStatementVisitorContext* context) const {}
     virtual void VisitBreakStatement(const BreakStatement& statement, IStatementVisitorContext* context) const {}
+    virtual void VisitReturnStatement(const ReturnStatement& statement, IStatementVisitorContext* context) const {}
 };

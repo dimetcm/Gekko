@@ -83,6 +83,7 @@ Value Environment::GetValue(const Token& token) const
 
 void Environment::RequestBreak()
 { 
+    assert(!m_return);
     assert(!m_break);
     m_break = true;
 }
@@ -98,6 +99,32 @@ void Environment::ClearBreak()
 bool Environment::BreakRequested() const
 {
     return m_break;
+}
+
+void Environment::RequestReturn(Value returnValue)
+{
+    assert(!m_return);
+    assert(!m_break);
+    m_return = true;
+    m_returnValue = returnValue;
+}
+
+void Environment::ClearReturn()
+{
+    assert(m_return);
+    m_return = false;
+    m_returnValue = Value();
+}
+
+bool Environment::ReturnRequested() const
+{
+    return m_return;
+}
+
+const Value& Environment::GetReturnValue() const
+{
+    assert(m_return);
+    return m_returnValue;
 }
 
 Environment& Environment::GetGlobalEnvironment()
@@ -230,6 +257,12 @@ void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatemen
         {
             break;
         }
+
+        if (environment.ReturnRequested())
+        {
+            GetEnvironment(*context).RequestReturn(environment.GetReturnValue());
+            break;
+        }
     }
 }
 
@@ -260,12 +293,23 @@ void Interpreter::VisitWhileStatement(const WhileStatement& statement, IStatemen
             environment.ClearBreak();
             break;
         }
+
+        if (environment.ReturnRequested())
+        {
+            break;
+        }
     }
 }
 
 void Interpreter::VisitBreakStatement(const BreakStatement& statement, IStatementVisitorContext* context) const
 {
     GetEnvironment(*context).RequestBreak();
+}
+
+void Interpreter::VisitReturnStatement(const ReturnStatement& statement, IStatementVisitorContext* context) const
+{
+    Value returnValue = Eval(*statement.m_returnValue, GetEnvironment(*context));
+    GetEnvironment(*context).RequestReturn(returnValue);
 }
 
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const

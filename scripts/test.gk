@@ -81,3 +81,16 @@ fun sum(a, b, c)
 
 sum(1, 2, 3);
 print sum;
+
+fun withReturn(a)
+{
+  if (a < 2.0)
+  {
+    return 0.0;
+  }
+
+  return a * 2;
+}
+
+print withReturn(1);
+print withReturn(3);

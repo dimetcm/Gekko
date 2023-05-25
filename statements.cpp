@@ -77,3 +77,11 @@ void BreakStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorC
     visitor.VisitBreakStatement(*this, context);
 }
 
+ReturnStatement::ReturnStatement(IExpressionPtr returnValue)
+    : m_returnValue(std::move(returnValue))
+{}
+
+void ReturnStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitReturnStatement(*this, context);
+}

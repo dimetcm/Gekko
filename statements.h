@@ -93,3 +93,12 @@ struct BreakStatement : IStatement
 {
     virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
 };
+
+struct ReturnStatement : IStatement
+{
+    explicit ReturnStatement(IExpressionPtr returnValue);
+
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+
+    IExpressionPtr m_returnValue;
+};

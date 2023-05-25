@@ -22,6 +22,7 @@ public:
 
     bool IsTruthy() const;
     bool HasValue() const;
+    bool IsNil() const;
 
     std::string ToString() const;
 private:
