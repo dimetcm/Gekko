@@ -131,7 +131,7 @@ Environment& Environment::GetGlobalEnvironment()
 {
     if (m_outer)
     {
-        return GetGlobalEnvironment();
+        return m_outer->GetGlobalEnvironment();
     }
 
     return *this;
