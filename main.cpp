@@ -286,6 +286,26 @@ void runTests()
             }
             assert(outputStream.str() == "ab\n");
         }
+
+        { // function return test
+            Scanner scanner(
+                "fun TestFun()"
+                "{"
+                    "return \"abc\";"
+                "}"
+                "print TestFun();"
+            );
+            Parser parser(scanner.Tokens());
+            std::stringstream outputStream;
+            Environment environment(outputStream);
+            Interpreter interpreter(environment);
+
+            for (const IStatementPtr& statement : parser.Parse(std::cerr))
+            {
+                interpreter.Execute(*statement, environment);
+            }
+            assert(outputStream.str() == "abc\n");
+        }
     }
 }
 
