@@ -7,25 +7,35 @@
 #include <assert.h>
 #include <sstream>
 
-Environment& Interpreter::GetEnvironment(IExpressionVisitorContext& context)
+EnvironmentPtr Interpreter::GetEnvironment(IExpressionVisitorContext& context)
 {
     ExpressionVisitorContext* internalContext = static_cast<ExpressionVisitorContext*>(&context);
     return internalContext->m_environment;
 }
 
-Environment& Interpreter::GetEnvironment(IStatementVisitorContext& context)
+EnvironmentPtr Interpreter::GetEnvironment(IStatementVisitorContext& context)
 {
     StatementVisitorContext* internalContext = static_cast<StatementVisitorContext*>(&context);
     return internalContext->m_environment;
+}
+
+EnvironmentPtr Environment::CreateGlobalEnvironment(std::ostream& outputStream)
+{
+    return std::shared_ptr<Environment>(new Environment(outputStream));
+}
+
+EnvironmentPtr Environment::CreateLocalEnvironment(EnvironmentPtr outer)
+{
+    return std::shared_ptr<Environment>(new Environment(outer));
 }
 
 Environment::Environment(std::ostream& output)
     : m_outputStream(output)
 {}
 
-Environment::Environment(Environment& outer)
-    : m_outer(&outer)
-    , m_outputStream(outer.m_outputStream)
+Environment::Environment(EnvironmentPtr outer)
+    : m_outer(outer)
+    , m_outputStream(outer->m_outputStream)
 {
     assert(!m_outer->m_break);
 }
@@ -88,7 +98,6 @@ void Environment::RequestBreak()
     m_break = true;
 }
 
-
 void Environment::ClearBreak()
 {
     assert(m_break);
@@ -127,14 +136,14 @@ const Value& Environment::GetReturnValue() const
     return m_returnValue;
 }
 
-Environment& Environment::GetGlobalEnvironment()
+EnvironmentPtr Environment::GetGlobalEnvironment()
 {
     if (m_outer)
     {
         return m_outer->GetGlobalEnvironment();
     }
 
-    return *this;
+    return shared_from_this();
 }
 
 std::ostream& Environment::GetOutputStream()
@@ -142,7 +151,7 @@ std::ostream& Environment::GetOutputStream()
     return m_outputStream;
 }
 
-Interpreter::Interpreter(Environment& environment)
+Interpreter::Interpreter(EnvironmentPtr environment)
 {
     RegisterNativeFunctions(environment);
 }
@@ -200,7 +209,7 @@ double Interpreter::GetNumberOperand(const Token& token, const Value& lhs)
     throw InterpreterError(token, "Operand must be a number.");
 }
 
-void Interpreter::Interpret(Environment& environment, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const
+void Interpreter::Interpret(EnvironmentPtr environment, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const
 {
     try
     {
@@ -222,45 +231,46 @@ void Interpreter::VisitExpressionStatement(const ExpressionStatement& statement,
 
 void Interpreter::VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const
 {
-    Environment& environment = GetEnvironment(*context);
+    EnvironmentPtr environment = GetEnvironment(*context);
     Value value = Eval(*statement.m_expression, environment);
-    environment.GetOutputStream() << value.ToString() << std::endl;
+    environment->GetOutputStream() << value.ToString() << std::endl;
 }
 
 void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationStatement& statement, IStatementVisitorContext* context) const
 {
-    Environment& environment = GetEnvironment(*context);
+    EnvironmentPtr environment = GetEnvironment(*context);
     Value value;
     if (statement.m_initializer)
     {
         value = Eval(*statement.m_initializer, environment);
     }
 
-    environment.Define(statement.m_name.m_lexeme, value);
+    environment->Define(statement.m_name.m_lexeme, value);
 }
 
 void Interpreter::VisitFunctionDeclarationStatement(const FunctionDeclarationStatement& statement, IStatementVisitorContext* context) const
 {
-    Environment& environment = GetEnvironment(*context);
+    EnvironmentPtr environment = GetEnvironment(*context);
 
-    std::shared_ptr<const ICallable> valuePtr = std::make_shared<const Function>(statement);
-    environment.Define(statement.m_name.m_lexeme, Value(valuePtr));
+    std::shared_ptr<const ICallable> valuePtr = std::make_shared<const Function>(statement, environment);
+    environment->Define(statement.m_name.m_lexeme, Value(valuePtr));
 }
 
 void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const
 {
-    Environment environment(GetEnvironment(*context));
+    EnvironmentPtr outer = GetEnvironment(*context);
+    EnvironmentPtr inner = Environment::CreateLocalEnvironment(outer);
     for (const IStatementPtr& statement : statement.m_block)
     {
-        Execute(*statement, environment);
-        if (environment.BreakRequested())
+        Execute(*statement, inner);
+        if (inner->BreakRequested())
         {
             break;
         }
 
-        if (environment.ReturnRequested())
+        if (inner->ReturnRequested())
         {
-            GetEnvironment(*context).RequestReturn(environment.GetReturnValue());
+            outer->RequestReturn(inner->GetReturnValue());
             break;
         }
     }
@@ -268,7 +278,7 @@ void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatemen
 
 void Interpreter::VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const
 {
-    Environment& environment = GetEnvironment(*context);
+    EnvironmentPtr environment = GetEnvironment(*context);
 
     Value conditionResult = Eval(*statement.m_condition, environment);
     if (conditionResult.IsTruthy())
@@ -283,18 +293,18 @@ void Interpreter::VisitIfStatement(const IfStatement& statement, IStatementVisit
 
 void Interpreter::VisitWhileStatement(const WhileStatement& statement, IStatementVisitorContext* context) const
 {
-    Environment& environment = GetEnvironment(*context);
+    EnvironmentPtr environment = GetEnvironment(*context);
 
     while (Eval(*statement.m_condition, environment).IsTruthy())
     {
         Execute(*statement.m_body, environment);
-        if (environment.BreakRequested())
+        if (environment->BreakRequested())
         {
-            environment.ClearBreak();
+            environment->ClearBreak();
             break;
         }
 
-        if (environment.ReturnRequested())
+        if (environment->ReturnRequested())
         {
             break;
         }
@@ -303,13 +313,13 @@ void Interpreter::VisitWhileStatement(const WhileStatement& statement, IStatemen
 
 void Interpreter::VisitBreakStatement(const BreakStatement& statement, IStatementVisitorContext* context) const
 {
-    GetEnvironment(*context).RequestBreak();
+    GetEnvironment(*context)->RequestBreak();
 }
 
 void Interpreter::VisitReturnStatement(const ReturnStatement& statement, IStatementVisitorContext* context) const
 {
     Value returnValue = Eval(*statement.m_returnValue, GetEnvironment(*context));
-    GetEnvironment(*context).RequestReturn(returnValue);
+    GetEnvironment(*context)->RequestReturn(returnValue);
 }
 
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
@@ -339,7 +349,7 @@ void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, I
 
 void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression, IExpressionVisitorContext* context) const
 {
-    Environment& environment = GetEnvironment(*context);
+    EnvironmentPtr environment = GetEnvironment(*context);
     
     ExpressionVisitorContext* exprResult = static_cast<ExpressionVisitorContext*>(context);
 
@@ -440,14 +450,14 @@ void Interpreter::VisitLiteralExpression(const LiteralExpression& literalExpress
 void Interpreter::VisitVariableExpression(const VariableExpression& variableExpression, IExpressionVisitorContext* context) const
 {
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
-    result->m_result = GetEnvironment(*context).GetValue(variableExpression.m_name);
+    result->m_result = GetEnvironment(*context)->GetValue(variableExpression.m_name);
 }
 
 void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignmentExpression, IExpressionVisitorContext* context) const
 {
-    Environment& environment = GetEnvironment(*context);
+    EnvironmentPtr environment = GetEnvironment(*context);
     Value value = Eval(*assignmentExpression.m_expression, GetEnvironment(*context));
-    environment.Assign(assignmentExpression.m_name, value);
+    environment->Assign(assignmentExpression.m_name, value);
     
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
     result->m_result = value;
@@ -455,7 +465,7 @@ void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignme
 
 void Interpreter::VisitLogicalExpression(const LogicalExpression& logicalExpression, IExpressionVisitorContext* context) const
 {
-    Environment& environment = GetEnvironment(*context);
+    EnvironmentPtr environment = GetEnvironment(*context);
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
 
     Value left = Eval(*logicalExpression.m_left, environment);
@@ -502,24 +512,24 @@ void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExp
     }
 
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
-    result->m_result = callable->Call(*this, GetEnvironment(*context).GetGlobalEnvironment(), arguments);
+    result->m_result = callable->Call(*this, GetEnvironment(*context)->GetGlobalEnvironment(), arguments);
 }
 
-void Interpreter::Execute(const IStatement& statement, Environment& environment) const
+void Interpreter::Execute(const IStatement& statement, EnvironmentPtr environment) const
 {
     StatementVisitorContext context(environment);
     statement.Accept(*this, &context);
 }
 
-Value Interpreter::Eval(const IExpression& expression, Environment& environment) const
+Value Interpreter::Eval(const IExpression& expression, EnvironmentPtr environment) const
 {
     ExpressionVisitorContext context(environment);
     expression.Accept(*this, &context);
     return context.m_result;
 }
 
-void Interpreter::RegisterNativeFunctions(Environment& environment) const
+void Interpreter::RegisterNativeFunctions(EnvironmentPtr environment) const
 {
     std::shared_ptr<const ICallable> clockCallable = std::make_shared<const ClockCallable>();
-    environment.Define("clock", Value(clockCallable));
+    environment->Define("clock", Value(clockCallable));
 }

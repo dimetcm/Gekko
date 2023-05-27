@@ -13,7 +13,7 @@
 #include "mocks/mockedinterpreter.h"
 #include "mocks/mockedparser.h"
 
-void run(Environment& environment, std::string_view source)
+void run(EnvironmentPtr environment, std::string_view source)
 {
     Scanner scanner(source);
 
@@ -48,14 +48,14 @@ void runFile(const char* filename)
     std::optional<std::string> script = GetFileContent(filename);
     if (script.has_value())
     {
-        Environment environment;
+        EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
         run(environment, script.value());
     }
 }
 
 void runPrompt()
 {
-    Environment environment;
+    EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
 
     std::string line; 
 
@@ -116,7 +116,7 @@ void runTests()
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
             
-            Environment environment;
+            EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
             MockedInterpreter interpreter(environment);
             Value result = interpreter.Eval(*expression, environment);
 
@@ -128,7 +128,7 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
-            Environment environment;
+            EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
             MockedInterpreter interpreter(environment);
             Value result = interpreter.Eval(*expression, environment);
 
@@ -140,19 +140,19 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
-            Environment environment;
+            EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
             MockedInterpreter interpreter(environment);
             Value result = interpreter.Eval(*expression, environment);
 
             assert(result.GetBoolean() && !*result.GetBoolean());
         }
 
-        {   // assognment test
+        {   // assignment test
             Scanner scanner("var a = 3;\n a = 2;");
             MockedParser parser(scanner.Tokens());
             std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
             assert(programm.size() == 2);
-            MockedEnvironment environment;
+            MockedEnvironmentPtr environment = MockedEnvironment::Create();
             MockedInterpreter interpreter(environment);
             std::stringstream outputStream;
             for (const IStatementPtr& statement : programm)
@@ -160,8 +160,9 @@ void runTests()
                 interpreter.Execute(*statement, environment);
             }
 
-            assert(environment.Hasvalue("a"));
-            assert(environment.GetValue("a").GetNumber() && *environment.GetValue("a").GetNumber() == 2.0);
+            assert(environment->Hasvalue("a"));
+            assert(environment->GetValue("a").GetNumber());
+            assert(*environment->GetValue("a").GetNumber() == 2.0);
         }
 
         {   // block test
@@ -175,7 +176,7 @@ void runTests()
             );
             MockedParser parser(scanner.Tokens());
             std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
-            MockedEnvironment environment;
+            MockedEnvironmentPtr environment = MockedEnvironment::Create();
             MockedInterpreter interpreter(environment);
             std::stringstream outputStream;
             for (const IStatementPtr& statement : programm)
@@ -183,8 +184,8 @@ void runTests()
                 interpreter.Execute(*statement, environment);
             }
 
-            assert(environment.Hasvalue("a"));
-            assert(environment.GetValue("a").GetNumber() && *environment.GetValue("a").GetNumber() == 1.0);
+            assert(environment->Hasvalue("a"));
+            assert(environment->GetValue("a").GetNumber() && *environment->GetValue("a").GetNumber() == 1.0);
         }
 
         {   // if test
@@ -200,7 +201,7 @@ void runTests()
             );
             MockedParser parser(scanner.Tokens());
             std::stringstream outputStream;
-            Environment environment(outputStream);
+            EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
             MockedInterpreter interpreter(environment);
 
             for (const IStatementPtr& statement : parser.Parse(std::cerr))
@@ -217,7 +218,7 @@ void runTests()
             );
             MockedParser parser(scanner.Tokens());
             std::stringstream outputStream;
-            Environment environment(outputStream);
+            EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
             MockedInterpreter interpreter(environment);
             
             for (const IStatementPtr& statement : parser.Parse(std::cerr))
@@ -240,7 +241,7 @@ void runTests()
             );
             MockedParser parser(scanner.Tokens());
             std::stringstream outputStream;
-            Environment environment(outputStream);
+            EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
             MockedInterpreter interpreter(environment);
 
             for (const IStatementPtr& statement : parser.Parse(std::cerr))
@@ -277,7 +278,8 @@ void runTests()
             );
             Parser parser(scanner.Tokens());
             std::stringstream outputStream;
-            Environment environment(outputStream);
+
+            EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
             Interpreter interpreter(environment);
 
             for (const IStatementPtr& statement : parser.Parse(std::cerr))
@@ -297,7 +299,7 @@ void runTests()
             );
             Parser parser(scanner.Tokens());
             std::stringstream outputStream;
-            Environment environment(outputStream);
+            EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
             Interpreter interpreter(environment);
 
             for (const IStatementPtr& statement : parser.Parse(std::cerr))

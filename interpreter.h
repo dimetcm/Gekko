@@ -1,22 +1,27 @@
 #pragma once
 
+#include "expressionvisitor.h"
+#include "statementvisitor.h"
+#include "value.h"
 #include <any>
 #include <iostream>
 #include <vector>
 #include <map>
-#include "expressionvisitor.h"
-#include "statementvisitor.h"
-#include "value.h"
+#include <memory>
 
 struct Token;
 class IExpression;
 struct IStatement;
 using IStatementPtr = std::unique_ptr<const IStatement>;
 
-struct Environment
+struct Environment;
+using EnvironmentPtr = std::shared_ptr<Environment>;
+
+struct Environment : std::enable_shared_from_this<Environment>
 {
-    explicit Environment(std::ostream& output = std::cout);
-    Environment(Environment& outer);
+    static EnvironmentPtr CreateGlobalEnvironment(std::ostream& outputStream = std::cout);
+    static EnvironmentPtr CreateLocalEnvironment(EnvironmentPtr outer);
+
     ~Environment();
 
     void Define(std::string_view name, const Value& value);
@@ -32,9 +37,13 @@ struct Environment
     bool ReturnRequested() const;
     const Value& GetReturnValue() const;
 
-    Environment& GetGlobalEnvironment();
+    EnvironmentPtr GetGlobalEnvironment();
 
     std::ostream& GetOutputStream();
+
+protected:
+    explicit Environment(std::ostream& output = std::cout);
+    explicit Environment(EnvironmentPtr outer);
 
     Environment(const Environment&) = delete;
     Environment &operator=(const Environment&) = delete;
@@ -42,7 +51,7 @@ struct Environment
 protected:
     std::map<std::string, Value> m_values;
     Value m_returnValue;
-    Environment* m_outer = nullptr;
+    EnvironmentPtr m_outer = nullptr;
     bool m_break = false;
     bool m_return = false;
     std::ostream& m_outputStream; 
@@ -61,22 +70,22 @@ struct Interpreter : IExpressionVisitor, IStatementVisitor
         const Token& m_operator;
     };
 
-    Interpreter(Environment& environment);
-    void Interpret(Environment& environment, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const;
-    void Execute(const IStatement& statement, Environment& environment) const;
+    Interpreter(EnvironmentPtr environment);
+    void Interpret(EnvironmentPtr environment, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const;
+    void Execute(const IStatement& statement, EnvironmentPtr environment) const;
 protected:
     struct StatementVisitorContext : IStatementVisitorContext
     {
-        explicit StatementVisitorContext(Environment& environment)
+        explicit StatementVisitorContext(EnvironmentPtr environment)
             : m_environment(environment) {}
 
-        Environment& m_environment;
+        EnvironmentPtr m_environment;
     };
 
     struct ExpressionVisitorContext : IExpressionVisitorContext 
     {
-        ExpressionVisitorContext(Environment& environment) : m_environment(environment) {} 
-        Environment& m_environment;
+        ExpressionVisitorContext(EnvironmentPtr environment) : m_environment(environment) {} 
+        EnvironmentPtr m_environment;
         Value m_result;
     };
     
@@ -100,13 +109,13 @@ protected:
     virtual void VisitLogicalExpression(const LogicalExpression& logicalExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const override;
 
-    Value Eval(const IExpression& expression, Environment& environment) const;
+    Value Eval(const IExpression& expression, EnvironmentPtr environment) const;
 
-    void RegisterNativeFunctions(Environment& environment) const;
+    void RegisterNativeFunctions(EnvironmentPtr environment) const;
 
     static bool AreEqual(const Token& token, const Value& lhs, const Value& rhs);
     static double GetNumberOperand(const Token& token, const Value& lhs);
 
-    static Environment& GetEnvironment(IExpressionVisitorContext& context);
-    static Environment& GetEnvironment(IStatementVisitorContext& context);
+    static EnvironmentPtr GetEnvironment(IExpressionVisitorContext& context);
+    static EnvironmentPtr GetEnvironment(IStatementVisitorContext& context);
 };

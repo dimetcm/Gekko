@@ -5,28 +5,29 @@
 #include <assert.h>
 #include <algorithm>
 
-Function::Function(const FunctionDeclarationStatement& declaration)
+Function::Function(const FunctionDeclarationStatement& declaration, EnvironmentPtr closure)
     : m_declaration(declaration)
+    , m_closure(closure)
 {}
 
-Value Function::Call(const Interpreter& interpreter, Environment& globalEnvironment, const std::vector<Value>& arguments) const
+Value Function::Call(const Interpreter& interpreter, EnvironmentPtr globalEnvironment, const std::vector<Value>& arguments) const
 {
     assert(arguments.size() == m_declaration.m_parameters.size());
 
-    Environment localEnvironment(globalEnvironment);
+    EnvironmentPtr localEnvironment = Environment::CreateLocalEnvironment(m_closure);
 
     for (size_t i = 0; i < arguments.size(); ++i)
     {
         const Token& token = m_declaration.m_parameters[i];
-        localEnvironment.Define(token.m_lexeme, arguments[i]);
+        localEnvironment->Define(token.m_lexeme, arguments[i]);
     }
 
     for (const IStatementPtr& statement : m_declaration.m_body)
     {
         interpreter.Execute(*statement, localEnvironment);
-        if (localEnvironment.ReturnRequested())
+        if (localEnvironment->ReturnRequested())
         {
-            return localEnvironment.GetReturnValue();
+            return localEnvironment->GetReturnValue();
         }
     }
 

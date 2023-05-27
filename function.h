@@ -7,13 +7,14 @@ struct FunctionDeclarationStatement;
 class Function : public ICallable
 {
 public:
-    Function(const FunctionDeclarationStatement& declaration);
+    Function(const FunctionDeclarationStatement& declaration, EnvironmentPtr closure);
 
 protected:
-    virtual Value Call(const Interpreter& interpreter, Environment& globals, const std::vector<Value>& arguments) const override;
+    virtual Value Call(const Interpreter& interpreter, EnvironmentPtr globals, const std::vector<Value>& arguments) const override;
 
     virtual int Arity() const override;
     virtual std::string ToString() const override;
    
     const FunctionDeclarationStatement& m_declaration;
+    EnvironmentPtr m_closure;
 };
