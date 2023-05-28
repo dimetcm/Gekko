@@ -108,6 +108,8 @@ protected:
     virtual void VisitAssignmentExpression(const AssignmentExpression& assignmentExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitLogicalExpression(const LogicalExpression& logicalExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const override;
+    virtual void VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const override;
+
 
     Value Eval(const IExpression& expression, EnvironmentPtr environment) const;
 

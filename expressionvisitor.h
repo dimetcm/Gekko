@@ -14,6 +14,7 @@ struct VariableExpression;
 struct AssignmentExpression;
 struct LogicalExpression;
 struct CallExpression;
+struct LambdaExpression;
 
 struct IExpressionVisitor
 {
@@ -27,4 +28,5 @@ struct IExpressionVisitor
     virtual void VisitAssignmentExpression(const AssignmentExpression& assignmentExpression, IExpressionVisitorContext* context) const {}
     virtual void VisitLogicalExpression(const LogicalExpression& logicalExpression, IExpressionVisitorContext* context) const {}
     virtual void VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const {}
+    virtual void VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const {}
 };

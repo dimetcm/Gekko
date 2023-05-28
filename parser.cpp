@@ -473,6 +473,33 @@ IExpressionPtr Parser::ParsePrimary()
         }
     }
     case Token::Type::Identifier:   return std::make_unique<VariableExpression>(token);
+    case Token::Type::Fun:
+    {
+        Consume(Token::Type::OpeningParenthesis, "Expect '(' after lambda.");
+        LambdaExpression::ParametersType parameters;
+
+        if (!Match(Token::Type::ClosingParenthesis))
+        {
+            do
+            {
+                parameters.emplace_back(Consume(Token::Type::Identifier, "Expect parameter name."));
+                if (parameters.size() >= 255)
+                {
+                    Gekko::ReportError(CurrentToken(), "Can't have more than 255 parameters.");
+                }
+
+            } while (ConsumeIfMatch(Token::Type::Comma));
+            
+        }
+
+        Consume(Token::Type::ClosingParenthesis, "Expect ')' after function parameters.");
+
+        Consume(Token::Type::OpeningBrace, "Expect '{' before function body.");
+
+        ParsingContext newContext = {.m_isInsideLoop = false, .m_isInsideFunction = true};
+        LambdaExpression::BodyType functionBody = ParseBlock(newContext);
+        return std::make_unique<LambdaExpression>(std::move(parameters), std::move(functionBody));
+    }
     default: throw ParseError(token, "Unhandled primary token type.");
     }
 }

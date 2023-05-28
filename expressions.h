@@ -1,8 +1,10 @@
 #pragma once
 
 #include <memory>
-#include<vector>
+#include <vector>
+#include <functional>
 #include "value.h"
+//#include "statements.h"
 
 struct Token;
 struct IExpressionVisitor;
@@ -107,4 +109,20 @@ struct CallExpression : public IExpression
     const Token& m_token;
     IExpressionPtr m_calle;
     std::vector<IExpressionPtr> m_arguments;
+};
+
+struct IStatement;
+using IStatementPtr = std::unique_ptr<const IStatement>;
+
+struct LambdaExpression : public IExpression
+{
+    using BodyType = std::vector<IStatementPtr>;
+    using ParametersType = std::vector<std::reference_wrapper<const Token>>;
+
+    LambdaExpression(ParametersType&& parameters, BodyType&& body);
+
+    virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
+
+    ParametersType m_parameters;
+    BodyType m_body;
 };

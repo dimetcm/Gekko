@@ -1,5 +1,6 @@
 #include "expressions.h"
 #include "expressionvisitor.h"
+#include "statements.h"
 
 UnaryExpression::UnaryExpression(const Token& op, IExpressionPtr expression)
     : m_expression(std::move(expression))
@@ -95,4 +96,14 @@ CallExpression::CallExpression(IExpressionPtr calle, const Token& token, std::ve
 void CallExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
 {
     visitor.VisitCallExpression(*this, context);
+}
+
+LambdaExpression::LambdaExpression(ParametersType&& parameters, BodyType&& body)
+    : m_parameters(std::move(parameters))
+    , m_body(std::move(body))
+{}
+
+void LambdaExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
+{
+    visitor.VisitLambdaExpression(*this, context);
 }

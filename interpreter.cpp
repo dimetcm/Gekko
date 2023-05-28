@@ -4,6 +4,7 @@
 #include "statements.h"
 #include "nativefunctions.h"
 #include "function.h"
+#include "lambda.h"
 #include <assert.h>
 #include <sstream>
 
@@ -513,6 +514,15 @@ void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExp
 
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
     result->m_result = callable->Call(*this, GetEnvironment(*context)->GetGlobalEnvironment(), arguments);
+}
+
+void Interpreter::VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const
+{
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+
+    EnvironmentPtr environment = GetEnvironment(*context);
+
+    result->m_result = Value(std::make_shared<const Lambda>(lambdaExpression, environment));
 }
 
 void Interpreter::Execute(const IStatement& statement, EnvironmentPtr environment) const
