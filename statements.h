@@ -16,7 +16,7 @@ struct IStatement
 
 using IStatementPtr = std::unique_ptr<const IStatement>;
 
-class IExpression;
+struct IExpression;
 using IExpressionPtr = std::unique_ptr<const IExpression>;
 
 struct ExpressionStatement : IStatement

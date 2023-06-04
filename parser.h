@@ -4,7 +4,7 @@
 #include <functional>
 #include "token.h"
 
-class IExpression;
+struct IExpression;
 using IExpressionPtr = std::unique_ptr<const IExpression>;
 
 struct IStatement;

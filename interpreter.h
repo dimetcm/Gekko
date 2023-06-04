@@ -10,7 +10,7 @@
 #include <memory>
 
 struct Token;
-class IExpression;
+struct IExpression;
 struct IStatement;
 using IStatementPtr = std::unique_ptr<const IStatement>;
 
@@ -27,7 +27,8 @@ struct Environment : std::enable_shared_from_this<Environment>
     void Define(std::string_view name, const Value& value);
     void Assign(const Token& token, const Value& value);
     Value GetValue(const Token& token) const;
-
+    Value GetValue(const Token& token, size_t distance) const;
+    
     void RequestBreak();
     void ClearBreak();
     bool BreakRequested() const;
@@ -70,7 +71,7 @@ struct Interpreter : IExpressionVisitor, IStatementVisitor
         const Token& m_operator;
     };
 
-    Interpreter(EnvironmentPtr environment);
+    Interpreter(EnvironmentPtr environment, std::map<const IExpression*, size_t>&& locals = std::map<const IExpression*, size_t>());
     void Interpret(EnvironmentPtr environment, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const;
     void Execute(const IStatement& statement, EnvironmentPtr environment) const;
 protected:
@@ -120,4 +121,6 @@ protected:
 
     static EnvironmentPtr GetEnvironment(IExpressionVisitorContext& context);
     static EnvironmentPtr GetEnvironment(IStatementVisitorContext& context);
+
+    std::map<const IExpression*, size_t> m_locals;    
 };

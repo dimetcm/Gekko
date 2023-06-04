@@ -92,6 +92,17 @@ Value Environment::GetValue(const Token& token) const
     throw Interpreter::InterpreterError(token, "Undefined variable '" + name + "'.");
 }
 
+Value Environment::GetValue(const Token& token, size_t distance) const
+{
+    const Environment* current = this;
+    for (size_t i = 0; i < distance; ++i)
+    {
+        current = current->m_outer.get();
+    }
+
+    return current->GetValue(token);
+}
+
 void Environment::RequestBreak()
 { 
     assert(!m_return);
@@ -152,7 +163,8 @@ std::ostream& Environment::GetOutputStream()
     return m_outputStream;
 }
 
-Interpreter::Interpreter(EnvironmentPtr environment)
+Interpreter::Interpreter(EnvironmentPtr environment, std::map<const IExpression*, size_t>&& locals)
+    : m_locals(locals)
 {
     RegisterNativeFunctions(environment);
 }
@@ -451,7 +463,23 @@ void Interpreter::VisitLiteralExpression(const LiteralExpression& literalExpress
 void Interpreter::VisitVariableExpression(const VariableExpression& variableExpression, IExpressionVisitorContext* context) const
 {
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
-    result->m_result = GetEnvironment(*context)->GetValue(variableExpression.m_name);
+    EnvironmentPtr environment = result->m_environment;
+    if (m_locals.empty())
+    {
+        result->m_result = environment->GetValue(variableExpression.m_name);
+    }
+    else
+    {
+        auto it = m_locals.find(&variableExpression);
+        if (it == m_locals.end())
+        {
+            result->m_result = environment->GetGlobalEnvironment()->GetValue(variableExpression.m_name);
+        }
+        else
+        {
+            result->m_result = environment->GetValue(variableExpression.m_name, it->second);
+        }
+    }
 }
 
 void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignmentExpression, IExpressionVisitorContext* context) const

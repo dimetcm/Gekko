@@ -4,22 +4,20 @@
 #include <vector>
 #include <functional>
 #include "value.h"
-//#include "statements.h"
 
 struct Token;
 struct IExpressionVisitor;
 struct IExpressionVisitorContext;
 
-class IExpression
+struct IExpression
 {
-public:
     virtual ~IExpression() {}
     virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context = nullptr) const = 0;
 };
 
 using IExpressionPtr = std::unique_ptr<const IExpression>;
 
-struct UnaryExpression : public IExpression
+struct UnaryExpression : IExpression
 {
     UnaryExpression(const Token& op, IExpressionPtr expression);
 
@@ -29,7 +27,7 @@ struct UnaryExpression : public IExpression
     const Token& m_operator;
 };
 
-struct BinaryExpression : public IExpression
+struct BinaryExpression : IExpression
 {
     BinaryExpression(IExpressionPtr left, const Token& op, IExpressionPtr right);
 
@@ -40,7 +38,7 @@ struct BinaryExpression : public IExpression
     IExpressionPtr m_right;
 };
 
-struct TernaryConditionalExpression : public IExpression
+struct TernaryConditionalExpression : IExpression
 {
     TernaryConditionalExpression(IExpressionPtr condition, IExpressionPtr trueBranch, IExpressionPtr falseBranch);
 
@@ -51,7 +49,7 @@ struct TernaryConditionalExpression : public IExpression
     IExpressionPtr m_falseBranch;
 };
 
-struct GroupingExpression : public IExpression
+struct GroupingExpression : IExpression
 {
     explicit GroupingExpression(IExpressionPtr expression);
 
@@ -60,7 +58,7 @@ struct GroupingExpression : public IExpression
     IExpressionPtr m_expression;
 };
 
-struct LiteralExpression : public IExpression
+struct LiteralExpression : IExpression
 {
     LiteralExpression();
     explicit LiteralExpression(Value value);
@@ -70,7 +68,7 @@ struct LiteralExpression : public IExpression
     Value m_value;
 };
 
-struct VariableExpression : public IExpression
+struct VariableExpression : IExpression
 {
     explicit VariableExpression(const Token& name);
 
@@ -79,7 +77,7 @@ struct VariableExpression : public IExpression
     const Token& m_name;
 };
 
-struct AssignmentExpression : public IExpression
+struct AssignmentExpression : IExpression
 {
      AssignmentExpression(const Token& name, IExpressionPtr expression);
 
@@ -89,7 +87,7 @@ struct AssignmentExpression : public IExpression
     IExpressionPtr m_expression;
 };
 
-struct LogicalExpression : public IExpression
+struct LogicalExpression : IExpression
 {
     LogicalExpression(IExpressionPtr left, const Token& op, IExpressionPtr right);
 
@@ -100,7 +98,7 @@ struct LogicalExpression : public IExpression
     IExpressionPtr m_right;
 };
 
-struct CallExpression : public IExpression
+struct CallExpression : IExpression
 {
     CallExpression(IExpressionPtr calle, const Token& token, std::vector<IExpressionPtr>&& arguments);
 
@@ -114,7 +112,7 @@ struct CallExpression : public IExpression
 struct IStatement;
 using IStatementPtr = std::unique_ptr<const IStatement>;
 
-struct LambdaExpression : public IExpression
+struct LambdaExpression : IExpression
 {
     using BodyType = std::vector<IStatementPtr>;
     using ParametersType = std::vector<std::reference_wrapper<const Token>>;

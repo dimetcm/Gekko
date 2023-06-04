@@ -7,6 +7,7 @@
 #include <filesystem>
 #include "scanner.h"
 #include "parser.h"
+#include "resolver.h"
 #include "astprinter.h"
 #include "statements.h"
 #include "expressions.h"
@@ -16,10 +17,11 @@
 void run(EnvironmentPtr environment, std::string_view source)
 {
     Scanner scanner(source);
-
     Parser parser(scanner.Tokens());
     std::vector<IStatementPtr> program = parser.Parse(std::cout);
-    Interpreter interpreter(environment);
+    Resolver resolver;
+    Resolver::Result resolution = resolver.Resolve(program);
+    Interpreter interpreter(environment, std::move(resolution.m_locals));
     interpreter.Interpret(environment, program, std::cerr);
 }
 
