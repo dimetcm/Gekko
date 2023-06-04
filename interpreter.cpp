@@ -8,6 +8,17 @@
 #include <assert.h>
 #include <sstream>
 
+template<class TEnv>
+TEnv GetAncestorEnvironment(size_t distance, TEnv current)
+{
+    for (int i = 0; i < distance; ++i)
+    {
+        current = current->GetOuter();
+    }
+
+    return current;
+}
+
 EnvironmentPtr Interpreter::GetEnvironment(IExpressionVisitorContext& context)
 {
     ExpressionVisitorContext* internalContext = static_cast<ExpressionVisitorContext*>(&context);
@@ -76,6 +87,11 @@ void Environment::Assign(const Token& token, const Value& value)
     }
 }
 
+void Environment::Assign(const Token& token, const Value& value, size_t distance)
+{
+    GetAncestorEnvironment(distance, shared_from_this())->Assign(token, value);    
+}
+
 Value Environment::GetValue(const Token& token) const
 {
     std::string name(token.m_lexeme);
@@ -94,13 +110,7 @@ Value Environment::GetValue(const Token& token) const
 
 Value Environment::GetValue(const Token& token, size_t distance) const
 {
-    const Environment* current = this;
-    for (size_t i = 0; i < distance; ++i)
-    {
-        current = current->m_outer.get();
-    }
-
-    return current->GetValue(token);
+    return GetAncestorEnvironment(distance, shared_from_this())->GetValue(token);
 }
 
 void Environment::RequestBreak()
@@ -486,7 +496,24 @@ void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignme
 {
     EnvironmentPtr environment = GetEnvironment(*context);
     Value value = Eval(*assignmentExpression.m_expression, GetEnvironment(*context));
-    environment->Assign(assignmentExpression.m_name, value);
+
+    if (m_locals.empty())
+    {
+        environment->Assign(assignmentExpression.m_name, value);
+    }
+    else
+    {
+        auto it = m_locals.find(&assignmentExpression);
+        if (it == m_locals.end())
+        {
+            environment->GetGlobalEnvironment()->Assign(assignmentExpression.m_name, value);
+        }
+        else
+        {
+            environment->Assign(assignmentExpression.m_name, value, it->second);
+        }
+
+    }
     
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
     result->m_result = value;

@@ -16,6 +16,7 @@ using IStatementPtr = std::unique_ptr<const IStatement>;
 
 struct Environment;
 using EnvironmentPtr = std::shared_ptr<Environment>;
+using ConstEnvironmentPtr = std::shared_ptr<const Environment>;
 
 struct Environment : std::enable_shared_from_this<Environment>
 {
@@ -26,6 +27,7 @@ struct Environment : std::enable_shared_from_this<Environment>
 
     void Define(std::string_view name, const Value& value);
     void Assign(const Token& token, const Value& value);
+    void Assign(const Token& token, const Value& value, size_t distance);
     Value GetValue(const Token& token) const;
     Value GetValue(const Token& token, size_t distance) const;
     
@@ -39,6 +41,9 @@ struct Environment : std::enable_shared_from_this<Environment>
     const Value& GetReturnValue() const;
 
     EnvironmentPtr GetGlobalEnvironment();
+
+    EnvironmentPtr GetOuter() { return m_outer; }
+    ConstEnvironmentPtr GetOuter() const { return m_outer; }
 
     std::ostream& GetOutputStream();
 
@@ -55,7 +60,7 @@ protected:
     EnvironmentPtr m_outer = nullptr;
     bool m_break = false;
     bool m_return = false;
-    std::ostream& m_outputStream; 
+    std::ostream& m_outputStream;
 };
 
 struct Interpreter : IExpressionVisitor, IStatementVisitor
