@@ -31,7 +31,12 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
     {
         if (!m_scopes.empty())
         {
-            m_scopes.back()[name.m_lexeme] = State::Declared;
+            Scope& scope = m_scopes.back();
+            if (scope.contains(name.m_lexeme))
+            {
+                Gekko::ReportError(name, "Already a variable with this name in this scope.");
+            }
+            scope[name.m_lexeme] = State::Declared;
         }
     }
 
