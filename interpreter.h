@@ -8,6 +8,7 @@
 #include <vector>
 #include <map>
 #include <memory>
+#include <type_traits>
 
 struct Token;
 struct IExpression;
@@ -63,6 +64,22 @@ protected:
     std::ostream& m_outputStream;
 };
 
+
+struct FunctionsRegistry
+{   
+    template<typename TCallable, typename... Args>
+    const ICallable* Register(Args&&... args)
+    {
+        const ICallable* callable = new TCallable(std::forward<Args>(args)...);
+        m_registered.emplace_back(callable);
+        return callable;
+    }
+
+    ~FunctionsRegistry();
+
+    std::vector<const ICallable*> m_registered; 
+};
+
 struct Interpreter : IExpressionVisitor, IStatementVisitor
 {
     struct InterpreterError : std::exception // todo: move to cpp
@@ -76,23 +93,31 @@ struct Interpreter : IExpressionVisitor, IStatementVisitor
         const Token& m_operator;
     };
 
-    Interpreter(EnvironmentPtr environment, std::map<const IExpression*, size_t>&& locals = std::map<const IExpression*, size_t>());
-    void Interpret(EnvironmentPtr environment, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const;
-    void Execute(const IStatement& statement, EnvironmentPtr environment) const;
+    Interpreter(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry, std::map<const IExpression*, size_t>&& locals = std::map<const IExpression*, size_t>());
+    void Interpret(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const;
+    void Execute(const IStatement& statement, EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const;
 protected:
     struct StatementVisitorContext : IStatementVisitorContext
     {
-        explicit StatementVisitorContext(EnvironmentPtr environment)
-            : m_environment(environment) {}
+        StatementVisitorContext(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry)
+            : m_environment(environment)
+            , m_functionsRegistry(functionsRegistry)
+        {}
 
         EnvironmentPtr m_environment;
+        FunctionsRegistry& m_functionsRegistry;
     };
 
     struct ExpressionVisitorContext : IExpressionVisitorContext 
     {
-        ExpressionVisitorContext(EnvironmentPtr environment) : m_environment(environment) {} 
+        ExpressionVisitorContext(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry)
+            : m_environment(environment)
+            , m_functionsRegistry(functionsRegistry)
+        {}
+
         EnvironmentPtr m_environment;
         Value m_result;
+        FunctionsRegistry& m_functionsRegistry;
     };
     
     virtual void VisitExpressionStatement(const ExpressionStatement& statement, IStatementVisitorContext* context) const override;
@@ -117,15 +142,18 @@ protected:
     virtual void VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const override;
 
 
-    Value Eval(const IExpression& expression, EnvironmentPtr environment) const;
+    Value Eval(const IExpression& expression, EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const;
 
-    void RegisterNativeFunctions(EnvironmentPtr environment) const;
+    void RegisterNativeFunctions(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const;
 
     static bool AreEqual(const Token& token, const Value& lhs, const Value& rhs);
     static double GetNumberOperand(const Token& token, const Value& lhs);
 
     static EnvironmentPtr GetEnvironment(IExpressionVisitorContext& context);
     static EnvironmentPtr GetEnvironment(IStatementVisitorContext& context);
+    static FunctionsRegistry& GetFunctionsRegistry(IExpressionVisitorContext& context);
+    static FunctionsRegistry& GetFunctionsRegistry(IStatementVisitorContext& context);
+
 
     std::map<const IExpression*, size_t> m_locals;    
 };

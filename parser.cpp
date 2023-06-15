@@ -5,12 +5,6 @@
 #include "gekko.h"
 #include <assert.h>
 
-struct ParsingContext
-{
-    bool m_isInsideLoop = false;
-    bool m_isInsideFunction = false;
-};
-
 Parser::Parser(const std::vector<Token>& tokens)
     : m_tokens(tokens)
 {}
@@ -23,7 +17,7 @@ std::vector<IStatementPtr> Parser::Parse(std::ostream& logOutput)
     {
         while (!Match(Token::Type::EndOfFile))
         {
-           programme.push_back(ParseDeclaration(ParsingContext()));
+           programme.push_back(ParseDeclaration());
         }
     }
     catch(const ParseError& pe)
@@ -71,7 +65,7 @@ IExpressionPtr Parser::ParseBinaryExpression(std::function<IExpressionPtr()> exp
     return left;
 }
 
-IStatementPtr Parser::ParseDeclaration(const ParsingContext& context)
+IStatementPtr Parser::ParseDeclaration()
 {
     if (ConsumeIfMatch(Token::Type::Var))
     {
@@ -79,10 +73,10 @@ IStatementPtr Parser::ParseDeclaration(const ParsingContext& context)
     }
     else if (ConsumeIfMatch(Token::Type::Fun))
     {
-        return ParseFunctionDeclaration(context);
+        return ParseFunctionDeclaration();
     }
 
-    return ParseStatement(context);
+    return ParseStatement();
 }
 
 IStatementPtr Parser::ParseVariableDeclaration()
@@ -99,7 +93,7 @@ IStatementPtr Parser::ParseVariableDeclaration()
     return std::make_unique<VariableDeclarationStatement>(name, std::move(initializer));
 }
 
-IStatementPtr Parser::ParseFunctionDeclaration(const ParsingContext& context)
+IStatementPtr Parser::ParseFunctionDeclaration()
 {
     const Token& name = Consume(Token::Type::Identifier, "Expect function name.");
     Consume(Token::Type::OpeningParenthesis, "Expect '(' after function name.");
@@ -124,17 +118,16 @@ IStatementPtr Parser::ParseFunctionDeclaration(const ParsingContext& context)
 
     Consume(Token::Type::OpeningBrace, "Expect '{' before function body.");
 
-    ParsingContext newContext = {.m_isInsideLoop = false, .m_isInsideFunction = true};
-    FunctionDeclarationStatement::BodyType functionBody = ParseBlock(newContext);
+    FunctionDeclarationStatement::BodyType functionBody = ParseBlock();
     return std::make_unique<FunctionDeclarationStatement>(name, std::move(parameters), std::move(functionBody));
 }
 
-std::vector<IStatementPtr> Parser::ParseBlock(const ParsingContext& context)
+std::vector<IStatementPtr> Parser::ParseBlock()
 {
     std::vector<IStatementPtr> block;
     while (!Match(Token::Type::ClosingBrace) && !Match(Token::Type::EndOfFile))
     {
-        block.push_back(ParseDeclaration(context));
+        block.push_back(ParseDeclaration());
     }
 
     Consume(Token::Type::ClosingBrace, "Expect '}' after block.");
@@ -142,7 +135,7 @@ std::vector<IStatementPtr> Parser::ParseBlock(const ParsingContext& context)
     return block;
 }
 
-IStatementPtr Parser::ParseStatement(const ParsingContext& context)
+IStatementPtr Parser::ParseStatement()
 {
     if (ConsumeIfMatch(Token::Type::Print))
     {
@@ -150,70 +143,59 @@ IStatementPtr Parser::ParseStatement(const ParsingContext& context)
     }
     else if (ConsumeIfMatch(Token::Type::If))
     {
-        return ParseIfStatement(context);
+        return ParseIfStatement();
     }
     else if (ConsumeIfMatch(Token::Type::While))
     {
-        return ParseWhileStatement(context);
+        return ParseWhileStatement();
     }
     else if (ConsumeIfMatch(Token::Type::For))
     {
-        return ParseForStatement(context);
+        return ParseForStatement();
     } 
     else if (ConsumeIfMatch(Token::Type::Break))
     {
-        if (!context.m_isInsideLoop)
-        {
-            throw ParseError(PreviousToken(), "break encountered outside of a loop body.");
-        }
-
-        return ParseBreakStatement(context);
+        return ParseBreakStatement();
     }
     else if (ConsumeIfMatch(Token::Type::Return))
     {
-        if (!context.m_isInsideFunction)
-        {
-            throw ParseError(PreviousToken(), "return encountered outside of a function body.");
-        }
-
-        return ParseReturnStatement(context);
+        return ParseReturnStatement();
     }
     else if (ConsumeIfMatch(Token::Type::OpeningBrace))
     {
-        return ParseBlockStatement(context);
+        return ParseBlockStatement();
     }
 
     return ParseExpressionStatement();
 }
 
-IStatementPtr Parser::ParseIfStatement(const ParsingContext& context)
+IStatementPtr Parser::ParseIfStatement()
 {
     Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'if'.");
     IExpressionPtr condition = ParseExpression();
     Consume(Token::Type::ClosingParenthesis, "Expect ')' after if condition.");
 
-    IStatementPtr trueBranch = ParseStatement(context);
+    IStatementPtr trueBranch = ParseStatement();
     IStatementPtr falseBranch = nullptr;
     if (ConsumeIfMatch(Token::Type::Else))
     {
-        falseBranch = ParseStatement(context);
+        falseBranch = ParseStatement();
     }
     
     return std::make_unique<IfStatement>(std::move(condition), std::move(trueBranch), std::move(falseBranch));
 }
 
-IStatementPtr Parser::ParseWhileStatement(const ParsingContext& context)
+IStatementPtr Parser::ParseWhileStatement()
 {
     Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'while'.");
     IExpressionPtr condition = ParseExpression();
     Consume(Token::Type::ClosingParenthesis, "Expect ')' after while condition.");
 
-    ParsingContext newContext = {.m_isInsideLoop = true, .m_isInsideFunction = context.m_isInsideFunction};
-    IStatementPtr statement = ParseStatement(newContext);
+    IStatementPtr statement = ParseStatement();
     return std::make_unique<WhileStatement>(std::move(condition), std::move(statement));
 }
 
-IStatementPtr Parser::ParseForStatement(const ParsingContext& context)
+IStatementPtr Parser::ParseForStatement()
 {
     Consume(Token::Type::OpeningParenthesis, "Expect '(' after 'for'.");
     IStatementPtr initStatement;
@@ -239,8 +221,7 @@ IStatementPtr Parser::ParseForStatement(const ParsingContext& context)
 
     Consume(Token::Type::ClosingParenthesis, "Expect ')' after loop increment.");
 
-    ParsingContext newContext = {.m_isInsideLoop = true, .m_isInsideFunction = context.m_isInsideFunction};
-    IStatementPtr body = ParseStatement(newContext);
+    IStatementPtr body = ParseStatement();
 
     std::vector<IStatementPtr> bodyWithIncrement;
     bodyWithIncrement.push_back(std::move(body));
@@ -264,13 +245,13 @@ IStatementPtr Parser::ParseForStatement(const ParsingContext& context)
     return std::make_unique<BlockStatement>(std::move(InitializerWithWhile));
 }
 
-IStatementPtr Parser::ParseBreakStatement(const ParsingContext& context)
+IStatementPtr Parser::ParseBreakStatement()
 {
     Consume(Token::Type::Semicolon, "Expect ';' after break.");
     return std::make_unique<BreakStatement>();
 }
 
-IStatementPtr Parser::ParseReturnStatement(const ParsingContext& context)
+IStatementPtr Parser::ParseReturnStatement()
 {
     IExpressionPtr returnValue;
     if (!Match(Token::Type::Semicolon))
@@ -282,9 +263,9 @@ IStatementPtr Parser::ParseReturnStatement(const ParsingContext& context)
     return std::make_unique<ReturnStatement>(std::move(returnValue));
 }
 
-IStatementPtr Parser::ParseBlockStatement(const ParsingContext& context)
+IStatementPtr Parser::ParseBlockStatement()
 {
-    return std::make_unique<BlockStatement>(ParseBlock(context));
+    return std::make_unique<BlockStatement>(ParseBlock());
 }
 
 IStatementPtr Parser::ParsePrintStatement()
@@ -372,7 +353,7 @@ IExpressionPtr Parser::ParseLogicalExpression(std::function<IExpressionPtr()> ex
     IExpressionPtr expression = exprFunc();
     if (Match(tokenType))
     {
-        Token token = m_tokens[m_current++];
+        const Token& token = m_tokens[m_current++];
         IExpressionPtr right = exprFunc();
         return std::make_unique<LogicalExpression>(std::move(expression), token, std::move(right));
     }
@@ -496,8 +477,7 @@ IExpressionPtr Parser::ParsePrimary()
 
         Consume(Token::Type::OpeningBrace, "Expect '{' before function body.");
 
-        ParsingContext newContext = {.m_isInsideLoop = false, .m_isInsideFunction = true};
-        LambdaExpression::BodyType functionBody = ParseBlock(newContext);
+        LambdaExpression::BodyType functionBody = ParseBlock();
         return std::make_unique<LambdaExpression>(std::move(parameters), std::move(functionBody));
     }
     default: throw ParseError(token, "Unhandled primary token type.");

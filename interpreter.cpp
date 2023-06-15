@@ -8,6 +8,14 @@
 #include <assert.h>
 #include <sstream>
 
+FunctionsRegistry::~FunctionsRegistry()
+{
+    for (const ICallable* callable : m_registered)
+    {
+        delete callable;
+    }
+}
+
 template<class TEnv>
 TEnv GetAncestorEnvironment(size_t distance, TEnv current)
 {
@@ -25,10 +33,22 @@ EnvironmentPtr Interpreter::GetEnvironment(IExpressionVisitorContext& context)
     return internalContext->m_environment;
 }
 
+FunctionsRegistry& Interpreter::GetFunctionsRegistry(IExpressionVisitorContext& context)
+{
+    ExpressionVisitorContext* internalContext = static_cast<ExpressionVisitorContext*>(&context);
+    return internalContext->m_functionsRegistry;
+}
+
 EnvironmentPtr Interpreter::GetEnvironment(IStatementVisitorContext& context)
 {
     StatementVisitorContext* internalContext = static_cast<StatementVisitorContext*>(&context);
     return internalContext->m_environment;
+}
+
+FunctionsRegistry& Interpreter::GetFunctionsRegistry(IStatementVisitorContext& context)
+{
+    StatementVisitorContext* internalContext = static_cast<StatementVisitorContext*>(&context);
+    return internalContext->m_functionsRegistry;
 }
 
 EnvironmentPtr Environment::CreateGlobalEnvironment(std::ostream& outputStream)
@@ -173,10 +193,10 @@ std::ostream& Environment::GetOutputStream()
     return m_outputStream;
 }
 
-Interpreter::Interpreter(EnvironmentPtr environment, std::map<const IExpression*, size_t>&& locals)
+Interpreter::Interpreter(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry, std::map<const IExpression*, size_t>&& locals)
     : m_locals(locals)
 {
-    RegisterNativeFunctions(environment);
+    RegisterNativeFunctions(environment, functionsRegistry);
 }
 
 bool Interpreter::AreEqual(const Token& token, const Value& lhs, const Value& rhs)
@@ -232,13 +252,13 @@ double Interpreter::GetNumberOperand(const Token& token, const Value& lhs)
     throw InterpreterError(token, "Operand must be a number.");
 }
 
-void Interpreter::Interpret(EnvironmentPtr environment, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const
+void Interpreter::Interpret(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry, const std::vector<IStatementPtr>& program, std::ostream& errorsLog) const
 {
     try
     {
         for (const IStatementPtr& statement : program)
         {
-            Execute(*statement, environment);
+            Execute(*statement, environment, functionsRegistry);
         }
     }
     catch(const InterpreterError& ie)
@@ -249,13 +269,13 @@ void Interpreter::Interpret(EnvironmentPtr environment, const std::vector<IState
 
 void Interpreter::VisitExpressionStatement(const ExpressionStatement& statement, IStatementVisitorContext* context) const
 {
-    Eval(*statement.m_expression, GetEnvironment(*context));
+    Eval(*statement.m_expression, GetEnvironment(*context), GetFunctionsRegistry(*context));
 }
 
 void Interpreter::VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const
 {
     EnvironmentPtr environment = GetEnvironment(*context);
-    Value value = Eval(*statement.m_expression, environment);
+    Value value = Eval(*statement.m_expression, environment, GetFunctionsRegistry(*context));
     environment->GetOutputStream() << value.ToString() << std::endl;
 }
 
@@ -265,7 +285,7 @@ void Interpreter::VisitVariableDeclarationStatement(const VariableDeclarationSta
     Value value;
     if (statement.m_initializer)
     {
-        value = Eval(*statement.m_initializer, environment);
+        value = Eval(*statement.m_initializer, environment, GetFunctionsRegistry(*context));
     }
 
     environment->Define(statement.m_name.m_lexeme, value);
@@ -275,17 +295,18 @@ void Interpreter::VisitFunctionDeclarationStatement(const FunctionDeclarationSta
 {
     EnvironmentPtr environment = GetEnvironment(*context);
 
-    std::shared_ptr<const ICallable> valuePtr = std::make_shared<const Function>(statement, environment);
-    environment->Define(statement.m_name.m_lexeme, Value(valuePtr));
+    const ICallable* callable = GetFunctionsRegistry(*context).Register<const Function>(statement, environment);
+    environment->Define(statement.m_name.m_lexeme, Value(callable));
 }
 
 void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const
 {
     EnvironmentPtr outer = GetEnvironment(*context);
     EnvironmentPtr inner = Environment::CreateLocalEnvironment(outer);
+    FunctionsRegistry& functionsRegistry = GetFunctionsRegistry(*context);
     for (const IStatementPtr& statement : statement.m_block)
     {
-        Execute(*statement, inner);
+        Execute(*statement, inner, functionsRegistry);
         if (inner->BreakRequested())
         {
             break;
@@ -302,25 +323,27 @@ void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatemen
 void Interpreter::VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const
 {
     EnvironmentPtr environment = GetEnvironment(*context);
+    FunctionsRegistry& functionsRegistry = GetFunctionsRegistry(*context); 
 
-    Value conditionResult = Eval(*statement.m_condition, environment);
+    Value conditionResult = Eval(*statement.m_condition, environment, functionsRegistry);
     if (conditionResult.IsTruthy())
     {
-        Execute(*statement.m_trueBranch, environment);
+        Execute(*statement.m_trueBranch, environment, functionsRegistry);
     }
     else if (statement.m_falseBranch)
     {
-        Execute(*statement.m_falseBranch, environment);
+        Execute(*statement.m_falseBranch, environment, functionsRegistry);
     }
 }
 
 void Interpreter::VisitWhileStatement(const WhileStatement& statement, IStatementVisitorContext* context) const
 {
     EnvironmentPtr environment = GetEnvironment(*context);
+    FunctionsRegistry& functionsRegistry = GetFunctionsRegistry(*context);
 
-    while (Eval(*statement.m_condition, environment).IsTruthy())
+    while (Eval(*statement.m_condition, environment, functionsRegistry).IsTruthy())
     {
-        Execute(*statement.m_body, environment);
+        Execute(*statement.m_body, environment, functionsRegistry);
         if (environment->BreakRequested())
         {
             environment->ClearBreak();
@@ -341,13 +364,13 @@ void Interpreter::VisitBreakStatement(const BreakStatement& statement, IStatemen
 
 void Interpreter::VisitReturnStatement(const ReturnStatement& statement, IStatementVisitorContext* context) const
 {
-    Value returnValue = Eval(*statement.m_returnValue, GetEnvironment(*context));
+    Value returnValue = Eval(*statement.m_returnValue, GetEnvironment(*context), GetFunctionsRegistry(*context));
     GetEnvironment(*context)->RequestReturn(returnValue);
 }
 
 void Interpreter::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
 {
-    Value expResult = Eval(*unaryExpression.m_expression, GetEnvironment(*context));
+    Value expResult = Eval(*unaryExpression.m_expression, GetEnvironment(*context), GetFunctionsRegistry(*context));
 
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
     if (unaryExpression.m_operator.m_type == Token::Type::Minus)
@@ -376,7 +399,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
     
     ExpressionVisitorContext* exprResult = static_cast<ExpressionVisitorContext*>(context);
 
-    Value leftExprResult = Eval(*binaryExpression.m_left, environment);
+    Value leftExprResult = Eval(*binaryExpression.m_left, environment, GetFunctionsRegistry(*context));
 
     Token::Type operatorType = binaryExpression.m_operator.m_type;
 
@@ -385,7 +408,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
     case Token::Type::EqualEqual:
     case Token::Type::BangEqual:
     {
-        Value rightExprResult = Eval(*binaryExpression.m_right, environment);
+        Value rightExprResult = Eval(*binaryExpression.m_right, environment, GetFunctionsRegistry(*context));
 
         bool result = AreEqual(binaryExpression.m_operator, leftExprResult, rightExprResult);
         exprResult->m_result = Value(operatorType == Token::Type::EqualEqual ? result : !result);        
@@ -404,7 +427,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
         {
             if (const std::string* lhs = leftExprResult.GetString())
             {
-                Value rightExprResult = Eval(*binaryExpression.m_right, environment);
+                Value rightExprResult = Eval(*binaryExpression.m_right, environment, GetFunctionsRegistry(*context));
                 if (const std::string* rhs = rightExprResult.GetString())
                 {
                     exprResult->m_result = Value(*lhs + *rhs);
@@ -419,7 +442,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
 
         double lhs = GetNumberOperand(binaryExpression.m_operator, leftExprResult);
 
-        Value rightExprResult = Eval(*binaryExpression.m_right, environment);
+        Value rightExprResult = Eval(*binaryExpression.m_right, environment, GetFunctionsRegistry(*context));
 
         double rhs = GetNumberOperand(binaryExpression.m_operator, rightExprResult);
 
@@ -448,7 +471,7 @@ void Interpreter::VisitBinaryExpression(const BinaryExpression& binaryExpression
 
 void Interpreter::VisitTernaryConditionalExpression(const TernaryConditionalExpression& ternaryConditionalExpression, IExpressionVisitorContext* context) const
 {
-    Value conditionResult = Eval(*ternaryConditionalExpression.m_condition, GetEnvironment(*context));
+    Value conditionResult = Eval(*ternaryConditionalExpression.m_condition, GetEnvironment(*context), GetFunctionsRegistry(*context));
     if (conditionResult.IsTruthy())
     {
         ternaryConditionalExpression.m_trueBranch->Accept(*this, context);
@@ -495,7 +518,7 @@ void Interpreter::VisitVariableExpression(const VariableExpression& variableExpr
 void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignmentExpression, IExpressionVisitorContext* context) const
 {
     EnvironmentPtr environment = GetEnvironment(*context);
-    Value value = Eval(*assignmentExpression.m_expression, GetEnvironment(*context));
+    Value value = Eval(*assignmentExpression.m_expression, GetEnvironment(*context), GetFunctionsRegistry(*context));
 
     if (m_locals.empty())
     {
@@ -522,16 +545,17 @@ void Interpreter::VisitAssignmentExpression(const AssignmentExpression& assignme
 void Interpreter::VisitLogicalExpression(const LogicalExpression& logicalExpression, IExpressionVisitorContext* context) const
 {
     EnvironmentPtr environment = GetEnvironment(*context);
+    FunctionsRegistry& functionsRegistry = GetFunctionsRegistry(*context);
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
 
-    Value left = Eval(*logicalExpression.m_left, environment);
+    Value left = Eval(*logicalExpression.m_left, environment, functionsRegistry);
     if (logicalExpression.m_operator.m_type == Token::Type::Or)
     {
-        result->m_result = left.IsTruthy() ? left : Eval(*logicalExpression.m_right, environment);
+        result->m_result = left.IsTruthy() ? left : Eval(*logicalExpression.m_right, environment, functionsRegistry);
     }
     else if (logicalExpression.m_operator.m_type == Token::Type::And)
     {
-        result->m_result = !left.IsTruthy() ? left : Eval(*logicalExpression.m_right, environment);
+        result->m_result = !left.IsTruthy() ? left : Eval(*logicalExpression.m_right, environment, functionsRegistry);
     }
     else
     {
@@ -541,16 +565,14 @@ void Interpreter::VisitLogicalExpression(const LogicalExpression& logicalExpress
 
 void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const
 {
-    Value calle = Eval(*callExpression.m_calle, GetEnvironment(*context));
+    Value calle = Eval(*callExpression.m_calle, GetEnvironment(*context), GetFunctionsRegistry(*context));
 
-    if (!calle.GetCallable())
+    const ICallable* callable = *calle.GetCallable();
+
+    if (!callable)
     {
         throw InterpreterError(callExpression.m_token, "Can only call functions and classes.");
     }
-
-    const ICallable* callable = calle.GetCallable();
-
-    assert(callable);
 
     if (callable->Arity() != callExpression.m_arguments.size())
     {
@@ -564,11 +586,11 @@ void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExp
 
     for (const IExpressionPtr& expression : callExpression.m_arguments)
     {
-        arguments.emplace_back(Eval(*expression, GetEnvironment(*context)));
+        arguments.emplace_back(Eval(*expression, GetEnvironment(*context), GetFunctionsRegistry(*context)));
     }
 
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
-    result->m_result = callable->Call(*this, GetEnvironment(*context)->GetGlobalEnvironment(), arguments);
+    result->m_result = callable->Call(*this, GetEnvironment(*context)->GetGlobalEnvironment(), GetFunctionsRegistry(*context), arguments);
 }
 
 void Interpreter::VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const
@@ -576,25 +598,26 @@ void Interpreter::VisitLambdaExpression(const LambdaExpression& lambdaExpression
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
 
     EnvironmentPtr environment = GetEnvironment(*context);
+    FunctionsRegistry& functionsRegistry = GetFunctionsRegistry(*context);
 
-    result->m_result = Value(std::make_shared<const Lambda>(lambdaExpression, environment));
+    const ICallable* lambda = functionsRegistry.Register<const Lambda>(lambdaExpression, environment);
+    result->m_result = Value(lambda);
 }
 
-void Interpreter::Execute(const IStatement& statement, EnvironmentPtr environment) const
+void Interpreter::Execute(const IStatement& statement, EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const
 {
-    StatementVisitorContext context(environment);
+    StatementVisitorContext context(environment, functionsRegistry);
     statement.Accept(*this, &context);
 }
 
-Value Interpreter::Eval(const IExpression& expression, EnvironmentPtr environment) const
+Value Interpreter::Eval(const IExpression& expression, EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const
 {
-    ExpressionVisitorContext context(environment);
+    ExpressionVisitorContext context(environment, functionsRegistry);
     expression.Accept(*this, &context);
     return context.m_result;
 }
 
-void Interpreter::RegisterNativeFunctions(EnvironmentPtr environment) const
+void Interpreter::RegisterNativeFunctions(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const
 {
-    std::shared_ptr<const ICallable> clockCallable = std::make_shared<const ClockCallable>();
-    environment->Define("clock", Value(clockCallable));
+    environment->Define("clock", Value(functionsRegistry.Register<ClockCallable>()));
 }

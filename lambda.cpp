@@ -9,7 +9,7 @@ Lambda::Lambda(const LambdaExpression& lambdaExpression, EnvironmentPtr closure)
     , m_closure(closure)
 {}
 
-Value Lambda::Call(const Interpreter& interpreter, EnvironmentPtr globals, const std::vector<Value>& arguments) const
+Value Lambda::Call(const Interpreter& interpreter, EnvironmentPtr globals, FunctionsRegistry& functionsRegistry, const std::vector<Value>& arguments) const
 {
     assert(arguments.size() == m_lambdaExpression.m_parameters.size());
 
@@ -23,7 +23,7 @@ Value Lambda::Call(const Interpreter& interpreter, EnvironmentPtr globals, const
 
     for (const IStatementPtr& statement : m_lambdaExpression.m_body)
     {
-        interpreter.Execute(*statement, localEnvironment);
+        interpreter.Execute(*statement, localEnvironment, functionsRegistry);
         if (localEnvironment->ReturnRequested())
         {
             return localEnvironment->GetReturnValue();

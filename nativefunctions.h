@@ -9,7 +9,7 @@ public:
     {}
 
 protected:
-    virtual Value Call(const Interpreter& interpreter, EnvironmentPtr globals, const std::vector<Value>& arguments) const override
+    virtual Value Call(const Interpreter& interpreter, EnvironmentPtr globals, FunctionsRegistry& functionsRegistry, const std::vector<Value>& arguments) const override
     {
         using namespace std::chrono;
         system_clock::time_point time = system_clock::now();

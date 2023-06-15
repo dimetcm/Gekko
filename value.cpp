@@ -17,10 +17,10 @@ Value::Value(const std::string& value)
     : m_value(std::make_any<std::string>(value))
 {}
 
-Value::Value(std::shared_ptr<const ICallable> value)
-    : m_value(std::make_any<std::shared_ptr<const ICallable>>(value))
+Value::Value(const ICallable* value)
+    : m_value(std::make_any<const ICallable*>(value))
 {}
-
+    
 const double* Value::GetNumber() const
 {
     return std::any_cast<double>(&m_value);
@@ -31,14 +31,9 @@ const std::string* Value::GetString() const
     return std::any_cast<std::string>(&m_value);
 }
 
-const ICallable* Value::GetCallable() const
+const ICallable* const* Value::GetCallable() const
 {
-    if (const std::shared_ptr<const ICallable>* callable = std::any_cast<std::shared_ptr<const ICallable>>(&m_value))
-    {
-        return callable->get();
-    }
-
-    return nullptr;
+    return std::any_cast<const ICallable*>(&m_value);
 }
 
 bool Value::IsTruthy() const
@@ -78,9 +73,9 @@ std::string Value::ToString() const
     {
         return *value ? "true" : "false";
     }
-    else if (const ICallable* value = GetCallable())
+    else if (const ICallable* const* value = GetCallable())
     {
-        return std::string(value->ToString());
+        return std::string((*value)->ToString());
     }
 
     return "Unsupported value type";

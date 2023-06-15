@@ -15,16 +15,16 @@ struct MockedEnvironment : Environment
 
 struct MockedInterpreter : Interpreter
 {
-    MockedInterpreter(EnvironmentPtr environment) : Interpreter(environment) {}
+    MockedInterpreter(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) : Interpreter(environment, functionsRegistry) {}
     
-    void Execute(const IStatement& statement, EnvironmentPtr environment) const
+    void Execute(const IStatement& statement, EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const
     {
-        Interpreter::Execute(statement, environment);
+        Interpreter::Execute(statement, environment, functionsRegistry);
     }
 
-    Value Eval(const IExpression& expression, EnvironmentPtr environment) const
+    Value Eval(const IExpression& expression, EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const
     {
-        return Interpreter::Eval(expression, environment);
+        return Interpreter::Eval(expression, environment, functionsRegistry);
     }
 };
 

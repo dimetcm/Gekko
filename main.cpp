@@ -14,15 +14,15 @@
 #include "mocks/mockedinterpreter.h"
 #include "mocks/mockedparser.h"
 
-void run(EnvironmentPtr environment, std::string_view source)
+void run(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry, std::string_view source)
 {
     Scanner scanner(source);
     Parser parser(scanner.Tokens());
     std::vector<IStatementPtr> program = parser.Parse(std::cout);
     Resolver resolver;
     Resolver::Result resolution = resolver.Resolve(program);
-    Interpreter interpreter(environment, std::move(resolution.m_locals));
-    interpreter.Interpret(environment, program, std::cerr);
+    Interpreter interpreter(environment, functionsRegistry, std::move(resolution.m_locals));
+    interpreter.Interpret(environment, functionsRegistry, program, std::cerr);
 }
 
 std::optional<std::string> GetFileContent(const char* filename)
@@ -51,20 +51,22 @@ void runFile(const char* filename)
     if (script.has_value())
     {
         EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
-        run(environment, script.value());
+        FunctionsRegistry functionsRegistry; 
+        run(environment, functionsRegistry, script.value());
     }
 }
 
 void runPrompt()
 {
     EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
+    FunctionsRegistry functionsRegistry; 
 
     std::string line; 
 
     std::cout << "> ";
     while (std::getline(std::cin, line))
     {
-        run(environment, line);
+        run(environment, functionsRegistry, line);
         std::cout << "> ";
     }
 }
@@ -119,8 +121,9 @@ void runTests()
             assert(expression);
             
             EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
-            MockedInterpreter interpreter(environment);
-            Value result = interpreter.Eval(*expression, environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
+            Value result = interpreter.Eval(*expression, environment, functionsRegistry);
 
             assert(result.GetNumber() && *result.GetNumber() == 22);
         }
@@ -131,8 +134,9 @@ void runTests()
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
             EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
-            MockedInterpreter interpreter(environment);
-            Value result = interpreter.Eval(*expression, environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
+            Value result = interpreter.Eval(*expression, environment, functionsRegistry);
 
             assert(result.GetBoolean() && *result.GetBoolean());
         }
@@ -143,8 +147,9 @@ void runTests()
             IExpressionPtr expression = parser.ParseExpression(std::cerr);
             assert(expression);
             EnvironmentPtr environment = Environment::CreateGlobalEnvironment();
-            MockedInterpreter interpreter(environment);
-            Value result = interpreter.Eval(*expression, environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
+            Value result = interpreter.Eval(*expression, environment, functionsRegistry);
 
             assert(result.GetBoolean() && !*result.GetBoolean());
         }
@@ -155,11 +160,12 @@ void runTests()
             std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
             assert(programm.size() == 2);
             MockedEnvironmentPtr environment = MockedEnvironment::Create();
-            MockedInterpreter interpreter(environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
             std::stringstream outputStream;
             for (const IStatementPtr& statement : programm)
             {
-                interpreter.Execute(*statement, environment);
+                interpreter.Execute(*statement, environment, functionsRegistry);
             }
 
             assert(environment->Hasvalue("a"));
@@ -179,11 +185,12 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             std::vector<IStatementPtr> programm = parser.Parse(std::cerr);
             MockedEnvironmentPtr environment = MockedEnvironment::Create();
-            MockedInterpreter interpreter(environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
             std::stringstream outputStream;
             for (const IStatementPtr& statement : programm)
             {
-                interpreter.Execute(*statement, environment);
+                interpreter.Execute(*statement, environment, functionsRegistry);
             }
 
             assert(environment->Hasvalue("a"));
@@ -204,11 +211,12 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             std::stringstream outputStream;
             EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
-            MockedInterpreter interpreter(environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
 
             for (const IStatementPtr& statement : parser.Parse(std::cerr))
             {
-                interpreter.Execute(*statement, environment);
+                interpreter.Execute(*statement, environment, functionsRegistry);
             }
             assert(outputStream.str() == "true\n");
         }
@@ -221,11 +229,13 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             std::stringstream outputStream;
             EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
-            MockedInterpreter interpreter(environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
             
-            for (const IStatementPtr& statement : parser.Parse(std::cerr))
+            std::vector<IStatementPtr> statements = parser.Parse(std::cerr);
+            for (const IStatementPtr& statement : statements)
             {
-                interpreter.Execute(*statement, environment);
+                interpreter.Execute(*statement, environment, functionsRegistry);
             }
             assert(outputStream.str() == "hi\nyes\n");
         }
@@ -244,11 +254,12 @@ void runTests()
             MockedParser parser(scanner.Tokens());
             std::stringstream outputStream;
             EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
-            MockedInterpreter interpreter(environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
 
             for (const IStatementPtr& statement : parser.Parse(std::cerr))
             {
-                interpreter.Execute(*statement, environment);
+                interpreter.Execute(*statement, environment, functionsRegistry);
             }
             assert(outputStream.str() == "aaaaaaaa\n");
         }
@@ -282,11 +293,12 @@ void runTests()
             std::stringstream outputStream;
 
             EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
-            Interpreter interpreter(environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
 
             for (const IStatementPtr& statement : parser.Parse(std::cerr))
             {
-                interpreter.Execute(*statement, environment);
+                interpreter.Execute(*statement, environment, functionsRegistry);
             }
             assert(outputStream.str() == "ab\n");
         }
@@ -302,11 +314,12 @@ void runTests()
             Parser parser(scanner.Tokens());
             std::stringstream outputStream;
             EnvironmentPtr environment = Environment::CreateGlobalEnvironment(outputStream);
-            Interpreter interpreter(environment);
+            FunctionsRegistry functionsRegistry;
+            MockedInterpreter interpreter(environment, functionsRegistry);
 
             for (const IStatementPtr& statement : parser.Parse(std::cerr))
             {
-                interpreter.Execute(*statement, environment);
+                interpreter.Execute(*statement, environment, functionsRegistry);
             }
             assert(outputStream.str() == "abc\n");
         }

@@ -10,7 +10,7 @@ Function::Function(const FunctionDeclarationStatement& declaration, EnvironmentP
     , m_closure(closure)
 {}
 
-Value Function::Call(const Interpreter& interpreter, EnvironmentPtr globalEnvironment, const std::vector<Value>& arguments) const
+Value Function::Call(const Interpreter& interpreter, EnvironmentPtr globalEnvironment, FunctionsRegistry& functionsRegistry, const std::vector<Value>& arguments) const
 {
     assert(arguments.size() == m_declaration.m_parameters.size());
 
@@ -24,7 +24,7 @@ Value Function::Call(const Interpreter& interpreter, EnvironmentPtr globalEnviro
 
     for (const IStatementPtr& statement : m_declaration.m_body)
     {
-        interpreter.Execute(*statement, localEnvironment);
+        interpreter.Execute(*statement, localEnvironment, functionsRegistry);
         if (localEnvironment->ReturnRequested())
         {
             return localEnvironment->GetReturnValue();
