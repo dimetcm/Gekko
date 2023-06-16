@@ -20,6 +20,7 @@ class Resolver : IExpressionVisitor, IStatementVisitor
 public:
     struct Result
     {
+        bool m_hasErrors = false;
         std::map<const IExpression*, size_t> m_locals; // resolved local names with distances to their declaration scope 
     };
 

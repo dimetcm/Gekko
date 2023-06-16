@@ -7,8 +7,9 @@
 
 struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
 {
-    ResolverContext(std::map<const IExpression*, size_t>& locals)
+    ResolverContext(std::map<const IExpression*, size_t>& locals, bool& hasErrors)
         : m_locals(locals)
+        , m_hasErrors(hasErrors)
     {}
     
     enum class State
@@ -83,6 +84,7 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
 
     bool m_isInsideFunction = false;
     bool m_isInsideCycle = false;
+    bool& m_hasErrors;
 };
 
 ResolverContext& GetResolverContext(IStatementVisitorContext& context)
@@ -99,7 +101,7 @@ Resolver::Result Resolver::Resolve(const std::vector<IStatementPtr>& statements)
 {
     Resolver::Result result;
 
-    ResolverContext context(result.m_locals);
+    ResolverContext context(result.m_locals, result.m_hasErrors);
     Resolve(statements, context);
 
     return result;
@@ -215,6 +217,7 @@ void Resolver::VisitBreakStatement(const BreakStatement& statement, IStatementVi
 
     if (!resolverContext.m_isInsideCycle) 
     {
+        resolverContext.m_hasErrors = true;
         Gekko::ReportError(statement.m_keyword, "Break encountered outside of a cycle.");
     }
 }
@@ -225,6 +228,7 @@ void Resolver::VisitReturnStatement(const ReturnStatement& statement, IStatement
 
     if (!resolverContext.m_isInsideFunction) 
     {
+        resolverContext.m_hasErrors = true;
         Gekko::ReportError(statement.m_keyword, "Can't return from top-level code.");
     }
 

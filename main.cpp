@@ -21,8 +21,11 @@ void run(EnvironmentPtr environment, FunctionsRegistry& functionsRegistry, std::
     std::vector<IStatementPtr> program = parser.Parse(std::cout);
     Resolver resolver;
     Resolver::Result resolution = resolver.Resolve(program);
-    Interpreter interpreter(environment, functionsRegistry, std::move(resolution.m_locals));
-    interpreter.Interpret(environment, functionsRegistry, program, std::cerr);
+    if (!resolution.m_hasErrors)
+    {
+        Interpreter interpreter(environment, functionsRegistry, std::move(resolution.m_locals));
+        interpreter.Interpret(environment, functionsRegistry, program, std::cerr);
+    }
 }
 
 std::optional<std::string> GetFileContent(const char* filename)
