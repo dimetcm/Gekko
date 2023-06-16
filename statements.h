@@ -91,7 +91,10 @@ struct WhileStatement : IStatement
 
 struct BreakStatement : IStatement
 {
+    explicit BreakStatement(const Token& keyword);
     virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+
+    const Token& m_keyword;
 };
 
 struct ReturnStatement : IStatement

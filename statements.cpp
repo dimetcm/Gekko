@@ -72,6 +72,10 @@ void WhileStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorC
     visitor.VisitWhileStatement(*this, context);    
 }
 
+BreakStatement::BreakStatement(const Token& keyword)
+    : m_keyword(keyword)
+{}
+
 void BreakStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
 {
     visitor.VisitBreakStatement(*this, context);

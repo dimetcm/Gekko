@@ -200,11 +200,24 @@ void Resolver::VisitWhileStatement(const WhileStatement& statement, IStatementVi
     ResolverContext& resolverContext = GetResolverContext(*context);
 
     Resolve(statement.m_condition, resolverContext);
+
+    const bool oldIsInsideCycle = resolverContext.m_isInsideCycle;
+    resolverContext.m_isInsideCycle = true;
+
     Resolve(statement.m_body, resolverContext);
+
+    resolverContext.m_isInsideCycle = oldIsInsideCycle;
 }
 
 void Resolver::VisitBreakStatement(const BreakStatement& statement, IStatementVisitorContext* context) const
-{}
+{
+    ResolverContext& resolverContext = GetResolverContext(*context);
+
+    if (!resolverContext.m_isInsideCycle) 
+    {
+        Gekko::ReportError(statement.m_keyword, "Break encountered outside of a cycle.");
+    }
+}
 
 void Resolver::VisitReturnStatement(const ReturnStatement& statement, IStatementVisitorContext* context) const
 {

@@ -247,8 +247,9 @@ IStatementPtr Parser::ParseForStatement()
 
 IStatementPtr Parser::ParseBreakStatement()
 {
+    const Token& keyword = PreviousToken();
     Consume(Token::Type::Semicolon, "Expect ';' after break.");
-    return std::make_unique<BreakStatement>();
+    return std::make_unique<BreakStatement>(keyword);
 }
 
 IStatementPtr Parser::ParseReturnStatement()
