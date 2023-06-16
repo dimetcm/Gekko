@@ -96,9 +96,10 @@ struct BreakStatement : IStatement
 
 struct ReturnStatement : IStatement
 {
-    explicit ReturnStatement(IExpressionPtr returnValue);
+    ReturnStatement(IExpressionPtr returnValue, const Token& keyword);
 
     virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
 
     IExpressionPtr m_returnValue;
+    const Token& m_keyword;
 };

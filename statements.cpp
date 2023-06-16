@@ -77,8 +77,9 @@ void BreakStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorC
     visitor.VisitBreakStatement(*this, context);
 }
 
-ReturnStatement::ReturnStatement(IExpressionPtr returnValue)
+ReturnStatement::ReturnStatement(IExpressionPtr returnValue, const Token& keyword)
     : m_returnValue(std::move(returnValue))
+    , m_keyword(keyword)
 {}
 
 void ReturnStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const

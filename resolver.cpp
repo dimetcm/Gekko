@@ -80,6 +80,9 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
     std::vector<Scope> m_scopes;
 
     std::map<const IExpression*, size_t>& m_locals;
+
+    bool m_isInsideFunction = false;
+    bool m_isInsideCycle = false;
 };
 
 ResolverContext& GetResolverContext(IStatementVisitorContext& context)
@@ -129,8 +132,13 @@ void Resolver::ResolveFunction(const FuncParametersType& params, const FuncBodyT
         context.Declare(parameter);
         context.Define(parameter);
     }
+    
+    const bool oldIsInsideFunction = context.m_isInsideFunction;
+    context.m_isInsideFunction = true;
 
     Resolve(body, context);
+
+    context.m_isInsideFunction = oldIsInsideFunction;
 
     context.EndScope();    
 }
@@ -201,6 +209,11 @@ void Resolver::VisitBreakStatement(const BreakStatement& statement, IStatementVi
 void Resolver::VisitReturnStatement(const ReturnStatement& statement, IStatementVisitorContext* context) const
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
+
+    if (!resolverContext.m_isInsideFunction) 
+    {
+        Gekko::ReportError(statement.m_keyword, "Can't return from top-level code.");
+    }
 
     Resolve(statement.m_returnValue, resolverContext);
 }

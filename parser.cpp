@@ -253,6 +253,8 @@ IStatementPtr Parser::ParseBreakStatement()
 
 IStatementPtr Parser::ParseReturnStatement()
 {
+    const Token& returnKeyword = PreviousToken();
+
     IExpressionPtr returnValue;
     if (!Match(Token::Type::Semicolon))
     {
@@ -260,7 +262,7 @@ IStatementPtr Parser::ParseReturnStatement()
     }
 
     Consume(Token::Type::Semicolon, "Expect ';' after return value.");
-    return std::make_unique<ReturnStatement>(std::move(returnValue));
+    return std::make_unique<ReturnStatement>(std::move(returnValue), returnKeyword);
 }
 
 IStatementPtr Parser::ParseBlockStatement()
