@@ -25,6 +25,8 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
 
     void EndScope()
     {
+        m_breakEncountered = nullptr;
+        m_returnEncountered = nullptr;
         m_scopes.pop_back();
     }
 
@@ -84,6 +86,8 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
 
     bool m_isInsideFunction = false;
     bool m_isInsideCycle = false;
+    const Token* m_breakEncountered = nullptr;
+    const Token* m_returnEncountered = nullptr;
     bool& m_hasErrors;
 };
 
@@ -117,6 +121,14 @@ void Resolver::Resolve(const std::vector<IStatementPtr>& statements, ResolverCon
    
 void Resolver::Resolve(const IStatementPtr& statement, ResolverContext& context) const
 {
+    if (context.m_breakEncountered)
+    {
+        Gekko::ReportError(*context.m_breakEncountered, "Unreachable code after break.");
+    }
+    else if (context.m_returnEncountered)
+    {
+        Gekko::ReportError(*context.m_returnEncountered, "Unreachable code after return.");
+    }
     statement->Accept(*this, &context);
 }
 
@@ -191,9 +203,13 @@ void Resolver::VisitIfStatement(const IfStatement& statement, IStatementVisitorC
 
     Resolve(statement.m_condition, resolverContext);
     Resolve(statement.m_trueBranch, resolverContext);
+    resolverContext.m_breakEncountered = nullptr;
+    resolverContext.m_returnEncountered = nullptr;
     if (statement.m_falseBranch)
     {
         Resolve(statement.m_falseBranch, resolverContext);
+        resolverContext.m_breakEncountered = nullptr;
+        resolverContext.m_returnEncountered = nullptr;
     }
 }
 
@@ -207,6 +223,9 @@ void Resolver::VisitWhileStatement(const WhileStatement& statement, IStatementVi
     resolverContext.m_isInsideCycle = true;
 
     Resolve(statement.m_body, resolverContext);
+    
+    resolverContext.m_breakEncountered = nullptr;
+    resolverContext.m_returnEncountered = nullptr;
 
     resolverContext.m_isInsideCycle = oldIsInsideCycle;
 }
@@ -220,6 +239,8 @@ void Resolver::VisitBreakStatement(const BreakStatement& statement, IStatementVi
         resolverContext.m_hasErrors = true;
         Gekko::ReportError(statement.m_keyword, "Break encountered outside of a cycle.");
     }
+
+    resolverContext.m_breakEncountered = &statement.m_keyword;
 }
 
 void Resolver::VisitReturnStatement(const ReturnStatement& statement, IStatementVisitorContext* context) const
@@ -233,6 +254,8 @@ void Resolver::VisitReturnStatement(const ReturnStatement& statement, IStatement
     }
 
     Resolve(statement.m_returnValue, resolverContext);
+
+    resolverContext.m_returnEncountered = &statement.m_keyword;
 }
 
 void Resolver::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExpressionVisitorContext* context) const
