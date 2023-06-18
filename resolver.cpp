@@ -27,6 +27,12 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
     {
         m_breakEncountered = nullptr;
         m_returnEncountered = nullptr;
+
+        for (auto it = m_scopes.back().m_unusedVariables.begin(); it != m_scopes.back().m_unusedVariables.end(); ++it)
+        {
+            Gekko::ReportError(*it->second, "Unused variable.");
+        }
+
         m_scopes.pop_back();
     }
 
@@ -35,11 +41,12 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
         if (!m_scopes.empty())
         {
             Scope& scope = m_scopes.back();
-            if (scope.contains(name.m_lexeme))
+            if (scope.m_variables.contains(name.m_lexeme))
             {
                 Gekko::ReportError(name, "Already a variable with this name in this scope.");
             }
-            scope[name.m_lexeme] = State::Declared;
+            scope.m_variables[name.m_lexeme] = State::Declared;
+            scope.m_unusedVariables[name.m_lexeme] = &name;
         }
     }
 
@@ -47,7 +54,7 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
     {
         if (!m_scopes.empty())
         {
-            m_scopes.back()[name.m_lexeme] = State::Defined;
+            m_scopes.back().m_variables[name.m_lexeme] = State::Defined;
         }
     }
 
@@ -55,9 +62,14 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
     {
         for (size_t i = m_scopes.size(); i-- > 0;)
         {
-            if (m_scopes[i].contains(name.m_lexeme))
+            if (m_scopes[i].m_variables.contains(name.m_lexeme))
             {
                 m_locals[&expression] = m_scopes.size() - i - 1;
+
+                if (m_scopes[i].m_unusedVariables.contains(name.m_lexeme))
+                {
+                    m_scopes[i].m_unusedVariables.erase(name.m_lexeme);
+                }
                 return;
             }
         }
@@ -68,8 +80,8 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
         if (!m_scopes.empty())
         {
             const Scope& localScope = m_scopes.back();            
-            auto it = localScope.find(name.m_lexeme);
-            if (it != localScope.end())
+            auto it = localScope.m_variables.find(name.m_lexeme);
+            if (it != localScope.m_variables.end())
             {
                 if (it->second == State::Declared)
                 {
@@ -79,7 +91,12 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
         }
     }
 
-    using Scope = std::map<std::string_view, State>; 
+    struct Scope
+    {
+        std::map<std::string_view, State> m_variables;
+        std::map<std::string_view, const Token*> m_unusedVariables;
+    };
+
     std::vector<Scope> m_scopes;
 
     std::map<const IExpression*, size_t>& m_locals;
