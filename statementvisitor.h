@@ -9,6 +9,7 @@ struct ExpressionStatement;
 struct PrintStatement;
 struct VariableDeclarationStatement;
 struct FunctionDeclarationStatement;
+struct ClassDeclarationStatement;
 struct BlockStatement;
 struct IfStatement;
 struct WhileStatement;
@@ -23,6 +24,7 @@ struct IStatementVisitor
     virtual void VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const {}
     virtual void VisitVariableDeclarationStatement(const VariableDeclarationStatement& statement, IStatementVisitorContext* context) const {}
     virtual void VisitFunctionDeclarationStatement(const FunctionDeclarationStatement& statement, IStatementVisitorContext* context) const {}
+    virtual void VisitClassDeclarationStatement(const ClassDeclarationStatement& statement, IStatementVisitorContext* context) const {}
     virtual void VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const {}
     virtual void VisitIfStatement(const IfStatement& statement, IStatementVisitorContext* context) const {}
     virtual void VisitWhileStatement(const WhileStatement& statement, IStatementVisitorContext* context) const {}

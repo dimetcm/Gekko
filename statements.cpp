@@ -42,6 +42,16 @@ void FunctionDeclarationStatement::Accept(const IStatementVisitor& visitor, ISta
     visitor.VisitFunctionDeclarationStatement(*this, context);
 }
 
+ClassDeclarationStatement::ClassDeclarationStatement(const Token& name, std::vector<FunctionDeclarationStatement>&& methods)
+    : m_name(name)
+    , m_methods(std::move(methods))
+{}
+
+void ClassDeclarationStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
+{
+    visitor.VisitClassDeclarationStatement(*this, context);
+}
+
 BlockStatement::BlockStatement(std::vector<IStatementPtr>&& block)
     : m_block(std::move(block))
 {}

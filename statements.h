@@ -23,7 +23,7 @@ struct ExpressionStatement : IStatement
 {
     explicit ExpressionStatement(IExpressionPtr expression);
 
-    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     IExpressionPtr m_expression;
 };
@@ -33,7 +33,7 @@ struct PrintStatement : IStatement
 {
     explicit PrintStatement(IExpressionPtr expression);
 
-    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     IExpressionPtr m_expression;
 };
@@ -42,7 +42,7 @@ struct VariableDeclarationStatement : IStatement
 {
     VariableDeclarationStatement(const Token& name, IExpressionPtr initializer);
 
-    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     const Token& m_name;
     IExpressionPtr m_initializer;
@@ -55,17 +55,27 @@ struct FunctionDeclarationStatement : IStatement
 
     FunctionDeclarationStatement(const Token& name, ParametersType&& parameters, BodyType&& body);
 
-    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     const Token& m_name;
     ParametersType m_parameters;
     BodyType m_body;
 };
 
+struct ClassDeclarationStatement : IStatement
+{
+    ClassDeclarationStatement(const Token& name, std::vector<FunctionDeclarationStatement>&& methods);
+
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
+
+    const Token& m_name;
+    std::vector<FunctionDeclarationStatement> m_methods;
+};
+
 struct BlockStatement : IStatement
 {
     explicit BlockStatement(std::vector<IStatementPtr>&& block);
-    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     std::vector<IStatementPtr> m_block;
 };
@@ -73,7 +83,7 @@ struct BlockStatement : IStatement
 struct IfStatement : IStatement
 {
     IfStatement(IExpressionPtr condition, IStatementPtr trueBranch, IStatementPtr falseBranch);
-    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     IExpressionPtr m_condition;
     IStatementPtr m_trueBranch;
@@ -83,7 +93,7 @@ struct IfStatement : IStatement
 struct WhileStatement : IStatement
 {
     WhileStatement(IExpressionPtr condition, IStatementPtr body);
-    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     IExpressionPtr m_condition;
     IStatementPtr m_body;
@@ -92,7 +102,7 @@ struct WhileStatement : IStatement
 struct BreakStatement : IStatement
 {
     explicit BreakStatement(const Token& keyword);
-    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     const Token& m_keyword;
 };
@@ -101,7 +111,7 @@ struct ReturnStatement : IStatement
 {
     ReturnStatement(IExpressionPtr returnValue, const Token& keyword);
 
-    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const;
+    virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     IExpressionPtr m_returnValue;
     const Token& m_keyword;
