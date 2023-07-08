@@ -47,7 +47,7 @@ protected:
     IStatementPtr ParseDeclaration();
     IStatementPtr ParseClassDeclaration();
     IStatementPtr ParseVariableDeclaration();
-    IStatementPtr ParseFunctionDeclaration();
+    IStatementPtr ParseFunctionDeclaration(enum class FunctionType functionType);
 
     IStatementPtr ParseStatement();
     IStatementPtr ParseBlockStatement();
