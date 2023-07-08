@@ -64,12 +64,12 @@ struct FunctionDeclarationStatement : IStatement
 
 struct ClassDeclarationStatement : IStatement
 {
-    ClassDeclarationStatement(const Token& name, std::vector<FunctionDeclarationStatement>&& methods);
+    ClassDeclarationStatement(const Token& name, std::vector<IStatementPtr>&& methods);
 
     virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     const Token& m_name;
-    std::vector<FunctionDeclarationStatement> m_methods;
+    std::vector<IStatementPtr> m_methods;
 };
 
 struct BlockStatement : IStatement

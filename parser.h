@@ -45,6 +45,7 @@ protected:
     const Token& PreviousToken() const;
  
     IStatementPtr ParseDeclaration();
+    IStatementPtr ParseClassDeclaration();
     IStatementPtr ParseVariableDeclaration();
     IStatementPtr ParseFunctionDeclaration();
 

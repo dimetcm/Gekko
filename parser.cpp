@@ -67,7 +67,11 @@ IExpressionPtr Parser::ParseBinaryExpression(std::function<IExpressionPtr()> exp
 
 IStatementPtr Parser::ParseDeclaration()
 {
-    if (ConsumeIfMatch(Token::Type::Var))
+    if (ConsumeIfMatch(Token::Type::Class))
+    {
+        return ParseClassDeclaration();
+    }
+    else if (ConsumeIfMatch(Token::Type::Var))
     {
         return ParseVariableDeclaration();
     }
@@ -77,6 +81,24 @@ IStatementPtr Parser::ParseDeclaration()
     }
 
     return ParseStatement();
+}
+
+IStatementPtr Parser::ParseClassDeclaration()
+{
+    const Token& name = Consume(Token::Type::Identifier, "Expect class name.");
+
+    Consume(Token::Type::OpeningBrace, "Expect '{' before class body.");
+
+    std::vector<IStatementPtr> methods;
+    while (CurrentToken().m_type != Token::Type::ClosingBrace && CurrentToken().m_type != Token::Type::EndOfFile)
+    {
+        methods.push_back(ParseFunctionDeclaration());
+    }
+    
+
+    Consume(Token::Type::ClosingBrace, "Expect '}' after class body.");
+
+    return std::make_unique<ClassDeclarationStatement>(name, std::move(methods));
 }
 
 IStatementPtr Parser::ParseVariableDeclaration()
