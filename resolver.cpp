@@ -205,6 +205,14 @@ void Resolver::VisitFunctionDeclarationStatement(const FunctionDeclarationStatem
     ResolveFunction(statement.m_parameters, statement.m_body, resolverContext);
 }
 
+void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& statement, IStatementVisitorContext* context) const
+{
+    ResolverContext& resolverContext = GetResolverContext(*context); 
+
+    resolverContext.Declare(statement.m_name);
+    resolverContext.Define(statement.m_name);
+}
+
 void Resolver::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const
 {
     ResolverContext& resolverContext = GetResolverContext(*context); 
