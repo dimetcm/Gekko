@@ -5,6 +5,7 @@
 #include "nativefunctions.h"
 #include "function.h"
 #include "lambda.h"
+#include "class.h"
 #include <assert.h>
 #include <sstream>
 
@@ -297,6 +298,13 @@ void Interpreter::VisitFunctionDeclarationStatement(const FunctionDeclarationSta
 
     const ICallable* callable = GetFunctionsRegistry(*context).Register<const Function>(statement, environment);
     environment->Define(statement.m_name.m_lexeme, Value(callable));
+}
+
+void Interpreter::VisitClassDeclarationStatement(const ClassDeclarationStatement& statement, IStatementVisitorContext* context) const
+{
+    EnvironmentPtr environment = GetEnvironment(*context);
+
+    environment->Define(statement.m_name.m_lexeme, Value(std::make_shared<Class>(statement.m_name.m_lexeme))); 
 }
 
 void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const

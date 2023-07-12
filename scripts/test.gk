@@ -155,3 +155,14 @@ fun unreachable()
   return 0;
   //var unreachableVar;
 }
+
+
+class ClassDeclarationTest 
+{
+  MemberFunction() 
+  {
+    return "class declared";
+  }
+}
+
+print ClassDeclarationTest;

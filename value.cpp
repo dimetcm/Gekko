@@ -1,5 +1,6 @@
 #include "value.h"
 #include "callable.h"
+#include "class.h"
 
 Value::Value()
 {}
@@ -20,7 +21,11 @@ Value::Value(const std::string& value)
 Value::Value(const ICallable* value)
     : m_value(std::make_any<const ICallable*>(value))
 {}
-    
+
+Value::Value(std::shared_ptr<const Class> value)
+    : m_value(std::make_any<std::shared_ptr<const Class>>(value))
+{}
+
 const double* Value::GetNumber() const
 {
     return std::any_cast<double>(&m_value);
@@ -34,6 +39,11 @@ const std::string* Value::GetString() const
 const ICallable* const* Value::GetCallable() const
 {
     return std::any_cast<const ICallable*>(&m_value);
+}
+
+const std::shared_ptr<const Class>* Value::GetClass() const
+{
+    return std::any_cast<const std::shared_ptr<const Class>>(&m_value);
 }
 
 bool Value::IsTruthy() const
@@ -76,6 +86,10 @@ std::string Value::ToString() const
     else if (const ICallable* const* value = GetCallable())
     {
         return std::string((*value)->ToString());
+    }
+    else if (const std::shared_ptr<const Class>* value = GetClass())
+    {
+        return std::string((*value)->ToString());        
     }
 
     return "Unsupported value type";
