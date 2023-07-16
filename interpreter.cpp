@@ -573,32 +573,40 @@ void Interpreter::VisitLogicalExpression(const LogicalExpression& logicalExpress
 
 void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const
 {
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+
     Value calle = Eval(*callExpression.m_calle, GetEnvironment(*context), GetFunctionsRegistry(*context));
+    
+    if (calle.GetCallable())
+    {
+        const ICallable* callable = *calle.GetCallable();
 
-    const ICallable* callable = *calle.GetCallable();
+        if (callable->Arity() != callExpression.m_arguments.size())
+        {
+            std::stringstream message;
+            message << "Expected " << callable->Arity() << " arguments, but got " << callExpression.m_arguments.size() << '.';   
+            throw InterpreterError(callExpression.m_token, message.str());
+        }
 
-    if (!callable)
+        std::vector<Value> arguments;
+        arguments.reserve(callExpression.m_arguments.size());
+
+        for (const IExpressionPtr& expression : callExpression.m_arguments)
+        {
+            arguments.emplace_back(Eval(*expression, GetEnvironment(*context), GetFunctionsRegistry(*context)));
+        }
+
+        result->m_result = callable->Call(*this, GetEnvironment(*context)->GetGlobalEnvironment(), GetFunctionsRegistry(*context), arguments);        
+    }
+    else if (calle.GetClass())
+    {
+
+        result->m_result = (*calle.GetClass())->CreateInstance();
+    }
+    else 
     {
         throw InterpreterError(callExpression.m_token, "Can only call functions and classes.");
     }
-
-    if (callable->Arity() != callExpression.m_arguments.size())
-    {
-        std::stringstream message;
-        message << "Expected " << callable->Arity() << " arguments, but got " << callExpression.m_arguments.size() << '.';   
-        throw InterpreterError(callExpression.m_token, message.str());
-    }
-
-    std::vector<Value> arguments;
-    arguments.reserve(callExpression.m_arguments.size());
-
-    for (const IExpressionPtr& expression : callExpression.m_arguments)
-    {
-        arguments.emplace_back(Eval(*expression, GetEnvironment(*context), GetFunctionsRegistry(*context)));
-    }
-
-    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
-    result->m_result = callable->Call(*this, GetEnvironment(*context)->GetGlobalEnvironment(), GetFunctionsRegistry(*context), arguments);
 }
 
 void Interpreter::VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const

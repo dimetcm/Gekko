@@ -6,8 +6,9 @@
 
 class ICallable;
 class Class;
+class ClassInstance;
 
-class Value
+class Value // todo: think about splitting Value class into those that hold by value or keep unique_ptr to value 
 {
 public:
     Value();
@@ -16,12 +17,14 @@ public:
     explicit Value(const std::string& value);
     explicit Value(const ICallable* value);
     explicit Value(std::shared_ptr<const Class> value);
+    explicit Value(std::shared_ptr<const ClassInstance> value);
 
     const double* GetNumber() const;
     const std::string* GetString() const;
     const bool* GetBoolean() const;
     const ICallable* const* GetCallable() const;
     const std::shared_ptr<const Class>* GetClass() const;
+    const std::shared_ptr<const ClassInstance>* GetClassInstace() const;
 
     bool IsTruthy() const;
     bool HasValue() const;

@@ -26,6 +26,10 @@ Value::Value(std::shared_ptr<const Class> value)
     : m_value(std::make_any<std::shared_ptr<const Class>>(value))
 {}
 
+Value::Value(std::shared_ptr<const ClassInstance> value)
+    : m_value(std::make_any<std::shared_ptr<const ClassInstance>>(value))
+{}
+
 const double* Value::GetNumber() const
 {
     return std::any_cast<double>(&m_value);
@@ -44,6 +48,11 @@ const ICallable* const* Value::GetCallable() const
 const std::shared_ptr<const Class>* Value::GetClass() const
 {
     return std::any_cast<const std::shared_ptr<const Class>>(&m_value);
+}
+
+const std::shared_ptr<const ClassInstance>* Value::GetClassInstace() const
+{
+    return std::any_cast<const std::shared_ptr<const ClassInstance>>(&m_value);
 }
 
 bool Value::IsTruthy() const
@@ -90,6 +99,10 @@ std::string Value::ToString() const
     else if (const std::shared_ptr<const Class>* value = GetClass())
     {
         return std::string((*value)->ToString());        
+    }
+    else if (const std::shared_ptr<const ClassInstance>* value = GetClassInstace())
+    {
+        return std::string((*value)->ClassDefinition().ToString()) + " class instace";        
     }
 
     return "Unsupported value type";

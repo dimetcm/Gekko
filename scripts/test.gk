@@ -166,3 +166,6 @@ class ClassDeclarationTest
 }
 
 print ClassDeclarationTest;
+
+class MakeInstance {}
+print MakeInstance();
