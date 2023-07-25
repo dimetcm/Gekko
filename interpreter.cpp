@@ -609,6 +609,31 @@ void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExp
     }
 }
 
+void Interpreter::VisitGetExpression(const GetExpression& getExpression, IExpressionVisitorContext* context) const
+{
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+    Value owner = Eval(*getExpression.m_owner, GetEnvironment(*context), GetFunctionsRegistry(*context));
+
+    if (const std::shared_ptr<const ClassInstance>* instance = owner.GetClassInstace())
+    {
+        Value value;
+        if ((*instance)->GetProperty(getExpression.m_name, value))
+        {
+            result->m_result = value;
+        }
+        else
+        {
+            std::string errorMessage = "Undefined property '" + std::string(getExpression.m_name.m_lexeme) + "'.";
+            throw InterpreterError(getExpression.m_name, errorMessage);
+        }
+    }
+    else
+    {
+        throw InterpreterError(getExpression.m_name, "Only instances have properties.");
+    }
+
+}
+
 void Interpreter::VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const
 {
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);

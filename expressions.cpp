@@ -98,6 +98,16 @@ void CallExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisito
     visitor.VisitCallExpression(*this, context);
 }
 
+GetExpression::GetExpression(IExpressionPtr owner, const Token& name)
+    : m_owner(std::move(owner))
+    , m_name(name)
+{}
+
+void GetExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
+{
+    visitor.VisitGetExpression(*this, context);
+}
+
 LambdaExpression::LambdaExpression(ParametersType&& parameters, BodyType&& body)
     : m_parameters(std::move(parameters))
     , m_body(std::move(body))

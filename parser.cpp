@@ -437,9 +437,9 @@ IExpressionPtr Parser::ParseUnary()
 IExpressionPtr Parser::ParseCall()
 {
     IExpressionPtr expression = ParsePrimary();
-    while (ConsumeIfMatch(Token::Type::OpeningParenthesis))
+    while (true)
     {
-        auto parseFininshCall = [this](IExpressionPtr calle) -> IExpressionPtr
+        if (ConsumeIfMatch(Token::Type::OpeningParenthesis))
         {
             std::vector<IExpressionPtr> argumets;
             if (!Match(Token::Type::ClosingParenthesis))
@@ -455,9 +455,17 @@ IExpressionPtr Parser::ParseCall()
             }
 
             Consume(Token::Type::ClosingParenthesis, "Expect ')' after arguments.");
-            return std::make_unique<CallExpression>(std::move(calle), PreviousToken(), std::move(argumets));
-        };
-        expression = parseFininshCall(std::move(expression));
+            expression = std::make_unique<CallExpression>(std::move(expression), PreviousToken(), std::move(argumets));
+        }
+        else if (ConsumeIfMatch(Token::Type::Dot))
+        {
+            const Token& name = Consume(Token::Type::Identifier, "Expect property name after '.'.");
+            expression = std::make_unique<GetExpression>(std::move(expression),  name);   
+        }
+        else
+        {
+            break;
+        }
     }
 
     return expression;

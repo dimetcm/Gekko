@@ -109,6 +109,16 @@ struct CallExpression : IExpression
     std::vector<IExpressionPtr> m_arguments;
 };
 
+struct GetExpression : IExpression
+{
+    GetExpression(IExpressionPtr owner, const Token& name);
+
+    virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
+
+    const Token& m_name;
+    IExpressionPtr m_owner;
+};
+
 struct IStatement;
 using IStatementPtr = std::unique_ptr<const IStatement>;
 
