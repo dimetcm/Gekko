@@ -26,8 +26,8 @@ Value::Value(std::shared_ptr<const Class> value)
     : m_value(std::make_any<std::shared_ptr<const Class>>(value))
 {}
 
-Value::Value(std::shared_ptr<const ClassInstance> value)
-    : m_value(std::make_any<std::shared_ptr<const ClassInstance>>(value))
+Value::Value(std::shared_ptr<ClassInstance> value)
+    : m_value(std::make_any<std::shared_ptr<ClassInstance>>(value))
 {}
 
 const double* Value::GetNumber() const
@@ -50,9 +50,9 @@ const std::shared_ptr<const Class>* Value::GetClass() const
     return std::any_cast<const std::shared_ptr<const Class>>(&m_value);
 }
 
-const std::shared_ptr<const ClassInstance>* Value::GetClassInstace() const
+const std::shared_ptr<ClassInstance>* Value::GetClassInstace() const
 {
-    return std::any_cast<const std::shared_ptr<const ClassInstance>>(&m_value);
+    return std::any_cast<const std::shared_ptr<ClassInstance>>(&m_value);
 }
 
 bool Value::IsTruthy() const
@@ -100,7 +100,7 @@ std::string Value::ToString() const
     {
         return std::string((*value)->ToString());        
     }
-    else if (const std::shared_ptr<const ClassInstance>* value = GetClassInstace())
+    else if (const std::shared_ptr<ClassInstance>* value = GetClassInstace())
     {
         return std::string((*value)->ClassDefinition().ToString()) + " class instace";        
     }

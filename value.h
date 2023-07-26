@@ -17,14 +17,14 @@ public:
     explicit Value(const std::string& value);
     explicit Value(const ICallable* value);
     explicit Value(std::shared_ptr<const Class> value);
-    explicit Value(std::shared_ptr<const ClassInstance> value);
+    explicit Value(std::shared_ptr<ClassInstance> value);
 
     const double* GetNumber() const;
     const std::string* GetString() const;
     const bool* GetBoolean() const;
     const ICallable* const* GetCallable() const;
     const std::shared_ptr<const Class>* GetClass() const;
-    const std::shared_ptr<const ClassInstance>* GetClassInstace() const;
+    const std::shared_ptr<ClassInstance>* GetClassInstace() const;
 
     bool IsTruthy() const;
     bool HasValue() const;

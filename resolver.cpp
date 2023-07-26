@@ -358,6 +358,14 @@ void Resolver::VisitGetExpression(const GetExpression& getExpression, IExpressio
     Resolve(getExpression.m_owner, resolverContext);
 }
 
+void Resolver::VisitSetExpression(const SetExpression& setExpression, IExpressionVisitorContext* context) const
+{
+    ResolverContext& resolverContext = GetResolverContext(*context);
+
+    Resolve(setExpression.m_owner, resolverContext);
+    Resolve(setExpression.m_value, resolverContext);
+}
+
 void Resolver::VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const
 {
     ResolverContext& resolverContext = GetResolverContext(*context);

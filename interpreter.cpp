@@ -614,7 +614,7 @@ void Interpreter::VisitGetExpression(const GetExpression& getExpression, IExpres
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
     Value owner = Eval(*getExpression.m_owner, GetEnvironment(*context), GetFunctionsRegistry(*context));
 
-    if (const std::shared_ptr<const ClassInstance>* instance = owner.GetClassInstace())
+    if (const std::shared_ptr<ClassInstance>* instance = owner.GetClassInstace())
     {
         Value value;
         if ((*instance)->GetProperty(getExpression.m_name, value))
@@ -631,7 +631,22 @@ void Interpreter::VisitGetExpression(const GetExpression& getExpression, IExpres
     {
         throw InterpreterError(getExpression.m_name, "Only instances have properties.");
     }
+}
 
+void Interpreter::VisitSetExpression(const SetExpression& setExpression, IExpressionVisitorContext* context) const
+{
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+    Value owner = Eval(*setExpression.m_owner, GetEnvironment(*context), GetFunctionsRegistry(*context));
+
+    if (const std::shared_ptr<ClassInstance>* instance = owner.GetClassInstace())
+    {
+        Value value = Eval(*setExpression.m_value, GetEnvironment(*context), GetFunctionsRegistry(*context));
+        (*instance)->SetProperty(setExpression.m_name, value);
+    }
+    else
+    {
+        throw InterpreterError(setExpression.m_name, "Only instances have properties.");
+    }
 }
 
 void Interpreter::VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const

@@ -141,6 +141,7 @@ protected:
     virtual void VisitLogicalExpression(const LogicalExpression& logicalExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitGetExpression(const GetExpression& getExpression, IExpressionVisitorContext* context) const override;
+    virtual void VisitSetExpression(const SetExpression& setExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const override;
 
 

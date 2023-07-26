@@ -340,18 +340,39 @@ IExpressionPtr Parser::ParseAssignment()
             }
 
             const Token* m_result = nullptr;
-        } visitor;
+        } getVariableVisitor;
 
-        expression->Accept(visitor, &visitor);
+        expression->Accept(getVariableVisitor, &getVariableVisitor);
 
-        if (visitor.m_result)
+        if (getVariableVisitor.m_result)
         {
             IExpressionPtr value = ParseAssignment();
-            return std::make_unique<AssignmentExpression>(*visitor.m_result, std::move(value));
+            return std::make_unique<AssignmentExpression>(*getVariableVisitor.m_result, std::move(value));
         }
         else
         {
-            ParseError(m_tokens[m_current], "Invalid assignment target.");
+            struct IsGetExpression : IExpressionVisitor, IExpressionVisitorContext
+            {
+                void VisitGetExpression(const GetExpression& variableExpression, IExpressionVisitorContext* context) const
+                {
+                    IsGetExpression* me = static_cast<IsGetExpression*>(context);
+                    me->m_result = true;
+                    me->m_expressionName = &variableExpression.m_name;
+                }
+
+                bool m_result = false;
+                const Token* m_expressionName = nullptr;
+            } isGetExpressionVisitor;
+
+            if (isGetExpressionVisitor.m_result)
+            {
+                IExpressionPtr value = ParseAssignment();
+                return std::make_unique<SetExpression>(std::move(expression), *isGetExpressionVisitor.m_expressionName, std::move(value));
+            }
+            else
+            {
+                ParseError(m_tokens[m_current], "Invalid assignment target.");
+            }
         }
     }
 

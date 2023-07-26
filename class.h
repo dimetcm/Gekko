@@ -25,6 +25,11 @@ public:
 
         return propertyFound;
     }
+
+    void SetProperty(const Token& name, Value value)
+    {
+        m_properties[name.m_lexeme] = value;
+    }
 private:
     const Class& m_definition;
     std::map<std::string_view, Value> m_properties;

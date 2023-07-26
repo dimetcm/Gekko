@@ -108,6 +108,17 @@ void GetExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitor
     visitor.VisitGetExpression(*this, context);
 }
 
+SetExpression::SetExpression(IExpressionPtr owner, const Token& name, IExpressionPtr value)
+    : m_owner(std::move(owner))
+    , m_name(name)
+    , m_value(std::move(value))
+{}
+
+void SetExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
+{
+    visitor.VisitSetExpression(*this, context);
+}
+
 LambdaExpression::LambdaExpression(ParametersType&& parameters, BodyType&& body)
     : m_parameters(std::move(parameters))
     , m_body(std::move(body))

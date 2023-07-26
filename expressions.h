@@ -119,6 +119,17 @@ struct GetExpression : IExpression
     IExpressionPtr m_owner;
 };
 
+struct SetExpression : IExpression
+{
+    SetExpression(IExpressionPtr owner, const Token& name, IExpressionPtr value);
+
+    virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
+
+    const Token& m_name;
+    IExpressionPtr m_owner;
+    IExpressionPtr m_value;
+};
+
 struct IStatement;
 using IStatementPtr = std::unique_ptr<const IStatement>;
 
