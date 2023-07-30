@@ -42,7 +42,9 @@ void FunctionDeclarationStatement::Accept(const IStatementVisitor& visitor, ISta
     visitor.VisitFunctionDeclarationStatement(*this, context);
 }
 
-ClassDeclarationStatement::ClassDeclarationStatement(const Token& name, std::vector<IStatementPtr>&& methods)
+ClassDeclarationStatement::ClassDeclarationStatement(
+    const Token& name,
+    std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods)
     : m_name(name)
     , m_methods(std::move(methods))
 {}

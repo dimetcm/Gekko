@@ -10,6 +10,9 @@ using IExpressionPtr = std::unique_ptr<const IExpression>;
 struct IStatement;
 using IStatementPtr = std::unique_ptr<const IStatement>;
 
+struct FunctionDeclarationStatement;
+enum class FunctionType;
+
 // consumes an array of tokens and produces a programm (for now an array of statements).
 // uses recursive descent for it. 
 class Parser
@@ -47,8 +50,7 @@ protected:
     IStatementPtr ParseDeclaration();
     IStatementPtr ParseClassDeclaration();
     IStatementPtr ParseVariableDeclaration();
-    IStatementPtr ParseFunctionDeclaration(enum class FunctionType functionType);
-
+    std::unique_ptr<FunctionDeclarationStatement> ParseFunctionDeclaration(FunctionType functionType); 
     IStatementPtr ParseStatement();
     IStatementPtr ParseBlockStatement();
     IStatementPtr ParseIfStatement();

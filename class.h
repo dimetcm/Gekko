@@ -1,31 +1,20 @@
 #pragma once
 
-#include "Callable.h"
 #include "Token.h"
 #include <string_view>
 #include <map>
 
 class Class;
+class Function;
 
 class ClassInstance
 {
 public:
-    ClassInstance(const Class& definition) : m_definition(definition) {}
+    explicit ClassInstance(const Class& definition);
 
     const Class& ClassDefinition() const { return m_definition; }
 
-    bool GetProperty(const Token& name, Value& result) const
-    {
-        auto it = m_properties.find(name.m_lexeme);
-        const bool propertyFound = it != m_properties.end();
-        if (propertyFound)
-        {
-            result = it->second;
-        } 
-
-        return propertyFound;
-    }
-
+    bool GetProperty(const Token& name, Value& result) const;
     void SetProperty(const Token& name, Value value)
     {
         m_properties[name.m_lexeme] = value;
@@ -38,16 +27,14 @@ private:
 class Class
 {
 public:
-    explicit Class(std::string_view name) : m_name(name) {}
+    Class(std::string_view name, std::map<std::string_view, const Function*>&& methods);
 
-    Value CreateInstance() const
-    {
-        std::shared_ptr<ClassInstance> instance = std::make_shared<ClassInstance>(*this);
-        return Value(instance);
-    }
-
+    Value CreateInstance() const;
+    
     std::string_view ToString() const { return m_name; }
 
+    const Function* GetMethod(std::string_view name) const;
 private:
     std::string_view m_name;
+    std::map<std::string_view, const Function*> m_methods;
 };

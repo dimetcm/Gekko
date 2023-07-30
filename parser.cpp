@@ -95,12 +95,11 @@ IStatementPtr Parser::ParseClassDeclaration()
 
     Consume(Token::Type::OpeningBrace, "Expect '{' before class body.");
 
-    std::vector<IStatementPtr> methods;
+    std::vector<std::unique_ptr<FunctionDeclarationStatement>> methods;
     while (CurrentToken().m_type != Token::Type::ClosingBrace && CurrentToken().m_type != Token::Type::EndOfFile)
     {
         methods.push_back(ParseFunctionDeclaration(FunctionType::ClassMethod));
     }
-    
 
     Consume(Token::Type::ClosingBrace, "Expect '}' after class body.");
 
@@ -121,7 +120,7 @@ IStatementPtr Parser::ParseVariableDeclaration()
     return std::make_unique<VariableDeclarationStatement>(name, std::move(initializer));
 }
 
-IStatementPtr Parser::ParseFunctionDeclaration(FunctionType functionType)
+std::unique_ptr<FunctionDeclarationStatement> Parser::ParseFunctionDeclaration(FunctionType functionType)
 {
     const std::string functionTypeName = functionType == FunctionType::Function ? "function" : "class method"; 
     const Token& name = Consume(Token::Type::Identifier, "Expect " + functionTypeName + " name.");
@@ -363,6 +362,8 @@ IExpressionPtr Parser::ParseAssignment()
                 bool m_result = false;
                 const Token* m_expressionName = nullptr;
             } isGetExpressionVisitor;
+
+            expression->Accept(isGetExpressionVisitor, &isGetExpressionVisitor);
 
             if (isGetExpressionVisitor.m_result)
             {

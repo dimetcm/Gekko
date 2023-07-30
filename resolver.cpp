@@ -211,6 +211,11 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
 
     resolverContext.Declare(statement.m_name);
     resolverContext.Define(statement.m_name);
+
+    for(const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_methods)
+    {
+        ResolveFunction(methodDeclaration->m_parameters, methodDeclaration->m_body, resolverContext);
+    }
 }
 
 void Resolver::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const

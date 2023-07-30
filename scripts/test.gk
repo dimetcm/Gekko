@@ -168,4 +168,15 @@ class ClassDeclarationTest
 print ClassDeclarationTest;
 
 class MakeInstance {}
-print MakeInstance();
+var instance = MakeInstance();
+print instance;
+
+class ClassMethodTest 
+{
+  Call()
+  {
+    print "some class method";
+  }
+}
+
+ClassMethodTest().Call(); // some class method.

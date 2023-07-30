@@ -304,7 +304,14 @@ void Interpreter::VisitClassDeclarationStatement(const ClassDeclarationStatement
 {
     EnvironmentPtr environment = GetEnvironment(*context);
 
-    environment->Define(statement.m_name.m_lexeme, Value(std::make_shared<Class>(statement.m_name.m_lexeme))); 
+    std::map<std::string_view, const Function*> methods;
+    for (const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_methods)
+    {
+        methods[methodDeclaration->m_name.m_lexeme] = GetFunctionsRegistry(*context).Register<Function>(*methodDeclaration.get(), environment);
+    }
+    std::shared_ptr<Class> classDefinition = std::make_shared<Class>(statement.m_name.m_lexeme, std::move(methods));
+
+    environment->Define(statement.m_name.m_lexeme, Value(classDefinition)); 
 }
 
 void Interpreter::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const

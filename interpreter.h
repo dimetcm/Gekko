@@ -68,9 +68,9 @@ protected:
 struct FunctionsRegistry
 {   
     template<typename TCallable, typename... Args>
-    const ICallable* Register(Args&&... args)
+    const TCallable* Register(Args&&... args)
     {
-        const ICallable* callable = new TCallable(std::forward<Args>(args)...);
+        const TCallable* callable = new TCallable(std::forward<Args>(args)...);
         m_registered.emplace_back(callable);
         return callable;
     }
