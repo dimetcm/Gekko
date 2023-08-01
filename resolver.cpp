@@ -107,6 +107,7 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
     std::map<const IExpression*, size_t>& m_locals;
 
     bool m_isInsideFunction = false;
+    bool m_isInsideClass = false;
     bool m_isInsideCycle = false;
     const Token* m_breakEncountered = nullptr;
     const Token* m_returnEncountered = nullptr;
@@ -214,6 +215,9 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
 {
     ResolverContext& resolverContext = GetResolverContext(*context); 
 
+    bool wasInsideClass = resolverContext.m_isInsideClass;
+    resolverContext.m_isInsideClass = true;
+
     resolverContext.Declare(statement.m_name);
     resolverContext.Define(statement.m_name);
 
@@ -226,6 +230,8 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
     }
 
     resolverContext.EndScope();
+
+    resolverContext.m_isInsideClass = wasInsideClass;
 }
 
 void Resolver::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const
@@ -392,5 +398,13 @@ void Resolver::VisitThisExpression(const ThisExpression& thisExpression, IExpres
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    resolverContext.ResolveLocal(thisExpression, thisExpression.m_keyword);
+    if (resolverContext.m_isInsideClass)
+    {
+        resolverContext.ResolveLocal(thisExpression, thisExpression.m_keyword);
+    }
+    else
+    {
+        resolverContext.m_hasErrors = true;
+        Gekko::ReportError(thisExpression.m_keyword, "Can't use 'this' outside of a class.");
+    }
 }

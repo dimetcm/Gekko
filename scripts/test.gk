@@ -192,3 +192,5 @@ class ThisTest
 var instance = ThisTest();
 instance.value = 42;
 instance.Call();
+
+// this.outsideOfTheClass = 5.0;
