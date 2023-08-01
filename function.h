@@ -8,7 +8,8 @@ class Function : public ICallable
 {
 public:
     Function(const FunctionDeclarationStatement& declaration, EnvironmentPtr closure);
-
+    const Function* Bind(std::shared_ptr<ClassInstance> classInstance, FunctionsRegistry& functionsRegistry) const;
+  
 protected:
     virtual Value Call(const Interpreter& interpreter, EnvironmentPtr globals, FunctionsRegistry& functionsRegistry, const std::vector<Value>& arguments) const override;
 

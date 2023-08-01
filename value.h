@@ -6,7 +6,7 @@
 
 class ICallable;
 class Class;
-class ClassInstance;
+struct ClassInstance;
 
 class Value // todo: think about splitting Value class into those that hold by value or keep unique_ptr to value 
 {

@@ -355,20 +355,19 @@ IExpressionPtr Parser::ParseAssignment()
                 void VisitGetExpression(const GetExpression& variableExpression, IExpressionVisitorContext* context) const
                 {
                     IsGetExpression* me = static_cast<IsGetExpression*>(context);
-                    me->m_result = true;
-                    me->m_expressionName = &variableExpression.m_name;
+                    me->m_result = &variableExpression;
                 }
 
-                bool m_result = false;
-                const Token* m_expressionName = nullptr;
-            } isGetExpressionVisitor;
+                const GetExpression* m_result = nullptr;
 
-            expression->Accept(isGetExpressionVisitor, &isGetExpressionVisitor);
+            } isGetExpression;
 
-            if (isGetExpressionVisitor.m_result)
+            expression->Accept(isGetExpression, &isGetExpression);
+
+            if (const GetExpression* getExpression = isGetExpression.m_result)
             {
                 IExpressionPtr value = ParseAssignment();
-                return std::make_unique<SetExpression>(std::move(expression), *isGetExpressionVisitor.m_expressionName, std::move(value));
+                return std::make_unique<SetExpression>(std::move(expression), *getExpression->m_owner, getExpression->m_name, std::move(value));
             }
             else
             {
@@ -542,6 +541,7 @@ IExpressionPtr Parser::ParsePrimary()
         LambdaExpression::BodyType functionBody = ParseBlock();
         return std::make_unique<LambdaExpression>(std::move(parameters), std::move(functionBody));
     }
+    case Token::Type::This: return std::make_unique<ThisExpression>(token);
     default: throw ParseError(token, "Unhandled primary token type.");
     }
 }

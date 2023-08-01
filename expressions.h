@@ -121,13 +121,14 @@ struct GetExpression : IExpression
 
 struct SetExpression : IExpression
 {
-    SetExpression(IExpressionPtr owner, const Token& name, IExpressionPtr value);
+    SetExpression(IExpressionPtr getter, const IExpression& owner, const Token& name, IExpressionPtr value);
 
     virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
 
     const Token& m_name;
-    IExpressionPtr m_owner;
+    IExpressionPtr m_getter;
     IExpressionPtr m_value;
+    const IExpression& m_owner;
 };
 
 struct IStatement;
@@ -144,4 +145,13 @@ struct LambdaExpression : IExpression
 
     ParametersType m_parameters;
     BodyType m_body;
+};
+
+struct ThisExpression : IExpression
+{
+    explicit ThisExpression(const Token& keyword);
+
+    virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
+
+    const Token& m_keyword;
 };

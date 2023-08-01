@@ -28,7 +28,7 @@ public:
 private:
 
     void Resolve(const IStatementPtr& statement, ResolverContext& context) const;
-    void Resolve(const IExpressiontPtr& expression, ResolverContext& context) const;
+    void Resolve(const IExpression& expression, ResolverContext& context) const;
     void Resolve(const std::vector<IStatementPtr>& statements, ResolverContext& context) const;
     using FuncParametersType = std::vector<std::reference_wrapper<const Token>>;
     using FuncBodyType = std::vector<IStatementPtr>;
@@ -57,4 +57,5 @@ private:
     virtual void VisitGetExpression(const GetExpression& getExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitSetExpression(const SetExpression& setExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const override;
+    virtual void VisitThisExpression(const ThisExpression& thisExpression, IExpressionVisitorContext* context) const override;
 };

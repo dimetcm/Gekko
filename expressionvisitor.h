@@ -17,6 +17,7 @@ struct CallExpression;
 struct GetExpression;
 struct SetExpression;
 struct LambdaExpression;
+struct ThisExpression;
 
 struct IExpressionVisitor
 {
@@ -33,4 +34,5 @@ struct IExpressionVisitor
     virtual void VisitGetExpression(const GetExpression& getExpression, IExpressionVisitorContext* context) const {}
     virtual void VisitSetExpression(const SetExpression& getExpression, IExpressionVisitorContext* context) const {}
     virtual void VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const {}
+    virtual void VisitThisExpression(const ThisExpression& thisExpression, IExpressionVisitorContext* context) const {}
 };

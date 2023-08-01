@@ -10,6 +10,13 @@ Function::Function(const FunctionDeclarationStatement& declaration, EnvironmentP
     , m_closure(closure)
 {}
 
+const Function* Function::Bind(std::shared_ptr<ClassInstance> classInstance, FunctionsRegistry& functionsRegistry) const
+{
+    EnvironmentPtr localEnvironment = Environment::CreateLocalEnvironment(m_closure);
+    localEnvironment->Define(TokenTypeToStringView(Token::Type::This), Value(classInstance));
+    return functionsRegistry.Register<Function>(m_declaration, localEnvironment);
+}
+
 Value Function::Call(const Interpreter& interpreter, EnvironmentPtr globalEnvironment, FunctionsRegistry& functionsRegistry, const std::vector<Value>& arguments) const
 {
     assert(arguments.size() == m_declaration.m_parameters.size());

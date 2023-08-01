@@ -623,10 +623,14 @@ void Interpreter::VisitGetExpression(const GetExpression& getExpression, IExpres
 
     if (const std::shared_ptr<ClassInstance>* instance = owner.GetClassInstace())
     {
-        Value value;
-        if ((*instance)->GetProperty(getExpression.m_name, value))
+        auto memberIt = (*instance)->m_properties.find(getExpression.m_name.m_lexeme);
+        if (memberIt != (*instance)->m_properties.end())
         {
-            result->m_result = value;
+            result->m_result = memberIt->second;
+        }
+        else if (const Function *method = (*instance)->m_definition.GetMethod(getExpression.m_name.m_lexeme))
+        {
+            result->m_result = Value(method->Bind(*instance, GetFunctionsRegistry(*context)));
         }
         else
         {
@@ -643,12 +647,12 @@ void Interpreter::VisitGetExpression(const GetExpression& getExpression, IExpres
 void Interpreter::VisitSetExpression(const SetExpression& setExpression, IExpressionVisitorContext* context) const
 {
     ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
-    Value owner = Eval(*setExpression.m_owner, GetEnvironment(*context), GetFunctionsRegistry(*context));
+    Value owner = Eval(setExpression.m_owner, GetEnvironment(*context), GetFunctionsRegistry(*context));
 
     if (const std::shared_ptr<ClassInstance>* instance = owner.GetClassInstace())
     {
         Value value = Eval(*setExpression.m_value, GetEnvironment(*context), GetFunctionsRegistry(*context));
-        (*instance)->SetProperty(setExpression.m_name, value);
+        (*instance)->m_properties[setExpression.m_name.m_lexeme] = value;
     }
     else
     {
@@ -665,6 +669,28 @@ void Interpreter::VisitLambdaExpression(const LambdaExpression& lambdaExpression
 
     const ICallable* lambda = functionsRegistry.Register<const Lambda>(lambdaExpression, environment);
     result->m_result = Value(lambda);
+}
+
+void Interpreter::VisitThisExpression(const ThisExpression& thisExpression, IExpressionVisitorContext* context) const
+{
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+    EnvironmentPtr environment = result->m_environment;
+    if (m_locals.empty())
+    {
+        result->m_result = environment->GetValue(thisExpression.m_keyword);
+    }
+    else
+    {
+        auto it = m_locals.find(&thisExpression);
+        if (it == m_locals.end())
+        {
+            result->m_result = environment->GetGlobalEnvironment()->GetValue(thisExpression.m_keyword);
+        }
+        else
+        {
+            result->m_result = environment->GetValue(thisExpression.m_keyword, it->second);
+        }
+    }
 }
 
 void Interpreter::Execute(const IStatement& statement, EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const

@@ -180,3 +180,15 @@ class ClassMethodTest
 }
 
 ClassMethodTest().Call(); // some class method.
+
+class ThisTest
+{
+  Call()
+  {
+    print this.value; 
+  }
+}
+
+var instance = ThisTest();
+instance.value = 42;
+instance.Call();

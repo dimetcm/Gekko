@@ -52,9 +52,14 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
 
     void Define(const Token& name)
     {
+        Define(name.m_lexeme);
+    }
+
+    void Define(std::string_view name)
+    {
         if (!m_scopes.empty())
         {
-            m_scopes.back().m_variables[name.m_lexeme] = State::Defined;
+            m_scopes.back().m_variables[name] = State::Defined;
         }
     }
 
@@ -149,9 +154,9 @@ void Resolver::Resolve(const IStatementPtr& statement, ResolverContext& context)
     statement->Accept(*this, &context);
 }
 
-void Resolver::Resolve(const IExpressiontPtr& expression, ResolverContext& context) const
+void Resolver::Resolve(const IExpression& expression, ResolverContext& context) const
 {
-    expression->Accept(*this, &context);
+    expression.Accept(*this, &context);
 }
 
 void Resolver::ResolveFunction(const FuncParametersType& params, const FuncBodyType& body, ResolverContext& context) const
@@ -176,12 +181,12 @@ void Resolver::ResolveFunction(const FuncParametersType& params, const FuncBodyT
 
 void Resolver::VisitExpressionStatement(const ExpressionStatement& statement, IStatementVisitorContext* context) const
 {
-    Resolve(statement.m_expression, GetResolverContext(*context));
+    Resolve(*statement.m_expression, GetResolverContext(*context));
 }
 
 void Resolver::VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const
 {
-    Resolve(statement.m_expression, GetResolverContext(*context));
+    Resolve(*statement.m_expression, GetResolverContext(*context));
 }
 
 void Resolver::VisitVariableDeclarationStatement(const VariableDeclarationStatement& statement, IStatementVisitorContext* context) const
@@ -190,7 +195,7 @@ void Resolver::VisitVariableDeclarationStatement(const VariableDeclarationStatem
     resolverContext.Declare(statement.m_name);
     if (statement.m_initializer)
     {
-        Resolve(statement.m_initializer, resolverContext);
+        Resolve(*statement.m_initializer, resolverContext);
     }
     resolverContext.Define(statement.m_name);
 }
@@ -212,10 +217,15 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
     resolverContext.Declare(statement.m_name);
     resolverContext.Define(statement.m_name);
 
+    resolverContext.BeginScope();
+    resolverContext.Define(TokenTypeToStringView(Token::Type::This));
+
     for(const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_methods)
     {
         ResolveFunction(methodDeclaration->m_parameters, methodDeclaration->m_body, resolverContext);
     }
+
+    resolverContext.EndScope();
 }
 
 void Resolver::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const
@@ -231,7 +241,7 @@ void Resolver::VisitIfStatement(const IfStatement& statement, IStatementVisitorC
 {
     ResolverContext& resolverContext = GetResolverContext(*context); 
 
-    Resolve(statement.m_condition, resolverContext);
+    Resolve(*statement.m_condition, resolverContext);
     Resolve(statement.m_trueBranch, resolverContext);
     resolverContext.m_breakEncountered = nullptr;
     resolverContext.m_returnEncountered = nullptr;
@@ -247,7 +257,7 @@ void Resolver::VisitWhileStatement(const WhileStatement& statement, IStatementVi
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    Resolve(statement.m_condition, resolverContext);
+    Resolve(*statement.m_condition, resolverContext);
 
     const bool oldIsInsideCycle = resolverContext.m_isInsideCycle;
     resolverContext.m_isInsideCycle = true;
@@ -283,7 +293,7 @@ void Resolver::VisitReturnStatement(const ReturnStatement& statement, IStatement
         Gekko::ReportError(statement.m_keyword, "Can't return from top-level code.");
     }
 
-    Resolve(statement.m_returnValue, resolverContext);
+    Resolve(*statement.m_returnValue, resolverContext);
 
     resolverContext.m_returnEncountered = &statement.m_keyword;
 }
@@ -292,31 +302,31 @@ void Resolver::VisitUnaryExpression(const UnaryExpression& unaryExpression, IExp
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    Resolve(unaryExpression.m_expression, resolverContext);
+    Resolve(*unaryExpression.m_expression, resolverContext);
 }
 
 void Resolver::VisitBinaryExpression(const BinaryExpression& binaryExpression, IExpressionVisitorContext* context) const
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    Resolve(binaryExpression.m_left, resolverContext);
-    Resolve(binaryExpression.m_right, resolverContext);
+    Resolve(*binaryExpression.m_left, resolverContext);
+    Resolve(*binaryExpression.m_right, resolverContext);
 }
 
 void Resolver::VisitTernaryConditionalExpression(const TernaryConditionalExpression& ternaryConditionalExpression, IExpressionVisitorContext* context) const
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    Resolve(ternaryConditionalExpression.m_condition, resolverContext);
-    Resolve(ternaryConditionalExpression.m_trueBranch, resolverContext);
-    Resolve(ternaryConditionalExpression.m_falseBranch, resolverContext);
+    Resolve(*ternaryConditionalExpression.m_condition, resolverContext);
+    Resolve(*ternaryConditionalExpression.m_trueBranch, resolverContext);
+    Resolve(*ternaryConditionalExpression.m_falseBranch, resolverContext);
 }
 
 void Resolver::VisitGroupingExpression(const GroupingExpression& groupingExpression, IExpressionVisitorContext* context) const
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    Resolve(groupingExpression.m_expression, resolverContext); 
+    Resolve(*groupingExpression.m_expression, resolverContext); 
 }
 
 void Resolver::VisitLiteralExpression(const LiteralExpression& literalExpression, IExpressionVisitorContext* context) const
@@ -332,7 +342,7 @@ void Resolver::VisitVariableExpression(const VariableExpression& variableExpress
 void Resolver::VisitAssignmentExpression(const AssignmentExpression& assignmentExpression, IExpressionVisitorContext* context) const
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
-    Resolve(assignmentExpression.m_expression, resolverContext);
+    Resolve(*assignmentExpression.m_expression, resolverContext);
     resolverContext.ResolveLocal(assignmentExpression, assignmentExpression.m_name);
 }
 
@@ -340,19 +350,19 @@ void Resolver::VisitLogicalExpression(const LogicalExpression& logicalExpression
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    Resolve(logicalExpression.m_left, resolverContext);
-    Resolve(logicalExpression.m_right, resolverContext);
+    Resolve(*logicalExpression.m_left, resolverContext);
+    Resolve(*logicalExpression.m_right, resolverContext);
 }
 
 void Resolver::VisitCallExpression(const CallExpression& callExpression, IExpressionVisitorContext* context) const
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    Resolve(callExpression.m_calle, resolverContext);
+    Resolve(*callExpression.m_calle, resolverContext);
 
     for (const IExpressionPtr& argument : callExpression.m_arguments)
     {
-        Resolve(argument, resolverContext);
+        Resolve(*argument, resolverContext);
     }
 }
 
@@ -360,7 +370,7 @@ void Resolver::VisitGetExpression(const GetExpression& getExpression, IExpressio
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    Resolve(getExpression.m_owner, resolverContext);
+    Resolve(*getExpression.m_owner, resolverContext);
 }
 
 void Resolver::VisitSetExpression(const SetExpression& setExpression, IExpressionVisitorContext* context) const
@@ -368,7 +378,7 @@ void Resolver::VisitSetExpression(const SetExpression& setExpression, IExpressio
     ResolverContext& resolverContext = GetResolverContext(*context);
 
     Resolve(setExpression.m_owner, resolverContext);
-    Resolve(setExpression.m_value, resolverContext);
+    Resolve(*setExpression.m_value, resolverContext);
 }
 
 void Resolver::VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const
@@ -376,4 +386,11 @@ void Resolver::VisitLambdaExpression(const LambdaExpression& lambdaExpression, I
     ResolverContext& resolverContext = GetResolverContext(*context);
 
     ResolveFunction(lambdaExpression.m_parameters, lambdaExpression.m_body, resolverContext);
+}
+
+void Resolver::VisitThisExpression(const ThisExpression& thisExpression, IExpressionVisitorContext* context) const
+{
+    ResolverContext& resolverContext = GetResolverContext(*context);
+
+    resolverContext.ResolveLocal(thisExpression, thisExpression.m_keyword);
 }
