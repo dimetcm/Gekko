@@ -607,8 +607,33 @@ void Interpreter::VisitCallExpression(const CallExpression& callExpression, IExp
     }
     else if (calle.GetClass())
     {
+        std::vector<Value> arguments;
+        arguments.reserve(callExpression.m_arguments.size());
 
-        result->m_result = (*calle.GetClass())->CreateInstance();
+        for (const IExpressionPtr& expression : callExpression.m_arguments)
+        {
+            arguments.emplace_back(Eval(*expression, GetEnvironment(*context), GetFunctionsRegistry(*context)));
+        }
+
+        const std::shared_ptr<const Class> classDefinition = *calle.GetClass();
+        std::shared_ptr<ClassInstance> instance = classDefinition->CreateInstance();
+
+        if (const Function* constructor = instance->m_definition.GetMethod(classDefinition->ToString()))
+        {
+            if (constructor->Arity() != arguments.size())
+            {
+                throw InterpreterError(callExpression.m_token, "Class constructor doesn't match the passed arguments count");
+            }
+            
+            const Function* bound = constructor->Bind(instance, GetFunctionsRegistry(*context));
+            bound->Call(
+                *this,
+                GetEnvironment(*context)->GetGlobalEnvironment(),
+                GetFunctionsRegistry(*context),
+                arguments);
+        }
+
+        result->m_result = Value(instance);
     }
     else 
     {

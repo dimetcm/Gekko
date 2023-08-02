@@ -6,7 +6,6 @@
 
 class Class;
 class Function;
-struct FunctionsRegistry;
 
 struct ClassInstance
 {
@@ -23,7 +22,7 @@ class Class
 public:
     Class(std::string_view name, std::map<std::string_view, const Function*>&& methods);
 
-    Value CreateInstance() const;
+    std::shared_ptr<ClassInstance> CreateInstance() const;
 
     std::string_view ToString() const { return m_name; }
 

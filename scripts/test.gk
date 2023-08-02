@@ -183,13 +183,19 @@ ClassMethodTest().Call(); // some class method.
 
 class ThisTest
 {
+  ThisTest(v)
+  {
+    this.constructor = v;
+  }
+
   Call()
   {
     print this.value; 
   }
 }
 
-var instance = ThisTest();
+var instance = ThisTest(10);
+print instance.constructor;
 instance.value = 42;
 instance.Call();
 

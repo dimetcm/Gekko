@@ -1,4 +1,4 @@
-#include "Class.h"
+#include "class.h"
 #include "function.h"
 
 ClassInstance::ClassInstance(const Class& definition)
@@ -9,10 +9,9 @@ Class::Class(std::string_view name, std::map<std::string_view, const Function *>
 {
 }
 
-Value Class::CreateInstance() const
+std::shared_ptr<ClassInstance> Class::CreateInstance() const
 {
-    std::shared_ptr<ClassInstance> instance = std::make_shared<ClassInstance>(*this);
-    return Value(instance);
+    return std::make_shared<ClassInstance>(*this);
 }
 
 const Function* Class::GetMethod(std::string_view name) const
