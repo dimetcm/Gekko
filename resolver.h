@@ -32,7 +32,8 @@ private:
     void Resolve(const std::vector<IStatementPtr>& statements, ResolverContext& context) const;
     using FuncParametersType = std::vector<std::reference_wrapper<const Token>>;
     using FuncBodyType = std::vector<IStatementPtr>;
-    void ResolveFunction(const FuncParametersType& params, const FuncBodyType& body, ResolverContext& context) const;
+    void ResolveFunction(const FuncParametersType& params, const FuncBodyType& body,
+                         ResolverContext& context, enum class FunctionType functionType) const;
 
     virtual void VisitExpressionStatement(const ExpressionStatement& statement, IStatementVisitorContext* context) const override;
     virtual void VisitPrintStatement(const PrintStatement& statement, IStatementVisitorContext* context) const override;

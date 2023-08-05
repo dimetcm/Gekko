@@ -5,6 +5,13 @@
 #include "gekko.h"
 #include <assert.h>
 
+enum class FunctionType
+{
+    None,
+    Function,
+    Constructor
+};
+
 struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
 {
     ResolverContext(std::map<const IExpression*, size_t>& locals, bool& hasErrors)
@@ -106,7 +113,7 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
 
     std::map<const IExpression*, size_t>& m_locals;
 
-    bool m_isInsideFunction = false;
+    FunctionType m_functionType = FunctionType::None;
     bool m_isInsideClass = false;
     bool m_isInsideCycle = false;
     const Token* m_breakEncountered = nullptr;
@@ -160,7 +167,10 @@ void Resolver::Resolve(const IExpression& expression, ResolverContext& context) 
     expression.Accept(*this, &context);
 }
 
-void Resolver::ResolveFunction(const FuncParametersType& params, const FuncBodyType& body, ResolverContext& context) const
+void Resolver::ResolveFunction( const FuncParametersType& params,
+                                const FuncBodyType& body,
+                                ResolverContext& context,
+                                FunctionType functionType) const
 {
     context.BeginScope();
 
@@ -170,12 +180,12 @@ void Resolver::ResolveFunction(const FuncParametersType& params, const FuncBodyT
         context.Define(parameter);
     }
     
-    const bool oldIsInsideFunction = context.m_isInsideFunction;
-    context.m_isInsideFunction = true;
+    const FunctionType prevFunctionType = context.m_functionType;
+    context.m_functionType = functionType;
 
     Resolve(body, context);
 
-    context.m_isInsideFunction = oldIsInsideFunction;
+    context.m_functionType = prevFunctionType;
 
     context.EndScope();    
 }
@@ -208,7 +218,7 @@ void Resolver::VisitFunctionDeclarationStatement(const FunctionDeclarationStatem
     resolverContext.Declare(statement.m_name);
     resolverContext.Define(statement.m_name);
     
-    ResolveFunction(statement.m_parameters, statement.m_body, resolverContext);
+    ResolveFunction(statement.m_parameters, statement.m_body, resolverContext, FunctionType::Function);
 }
 
 void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& statement, IStatementVisitorContext* context) const
@@ -226,7 +236,8 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
 
     for(const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_methods)
     {
-        ResolveFunction(methodDeclaration->m_parameters, methodDeclaration->m_body, resolverContext);
+        FunctionType functionType = methodDeclaration->m_name.m_lexeme == statement.m_name.m_lexeme ? FunctionType::Constructor : FunctionType::Function; 
+        ResolveFunction(methodDeclaration->m_parameters, methodDeclaration->m_body, resolverContext, functionType);
     }
 
     resolverContext.EndScope();
@@ -293,13 +304,21 @@ void Resolver::VisitReturnStatement(const ReturnStatement& statement, IStatement
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    if (!resolverContext.m_isInsideFunction) 
+    if (resolverContext.m_functionType == FunctionType::None) 
     {
         resolverContext.m_hasErrors = true;
         Gekko::ReportError(statement.m_keyword, "Can't return from top-level code.");
     }
 
-    Resolve(*statement.m_returnValue, resolverContext);
+    if (statement.m_returnValue)
+    {
+        if (resolverContext.m_functionType == FunctionType::Constructor)
+        {
+            resolverContext.m_hasErrors = true;
+            Gekko::ReportError(statement.m_keyword, "Can't return value from constructor.");
+        }
+        Resolve(*statement.m_returnValue, resolverContext);
+    }
 
     resolverContext.m_returnEncountered = &statement.m_keyword;
 }
@@ -391,7 +410,7 @@ void Resolver::VisitLambdaExpression(const LambdaExpression& lambdaExpression, I
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
-    ResolveFunction(lambdaExpression.m_parameters, lambdaExpression.m_body, resolverContext);
+    ResolveFunction(lambdaExpression.m_parameters, lambdaExpression.m_body, resolverContext, FunctionType::Function);
 }
 
 void Resolver::VisitThisExpression(const ThisExpression& thisExpression, IExpressionVisitorContext* context) const
