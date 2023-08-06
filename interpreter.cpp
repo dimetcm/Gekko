@@ -309,7 +309,14 @@ void Interpreter::VisitClassDeclarationStatement(const ClassDeclarationStatement
     {
         methods[methodDeclaration->m_name.m_lexeme] = GetFunctionsRegistry(*context).Register<Function>(*methodDeclaration.get(), environment);
     }
-    std::shared_ptr<Class> classDefinition = std::make_shared<Class>(statement.m_name.m_lexeme, std::move(methods));
+
+    std::map<std::string_view, const Function*> staticMethods;
+    for (const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_staticMethods)
+    {
+        staticMethods[methodDeclaration->m_name.m_lexeme] = GetFunctionsRegistry(*context).Register<Function>(*methodDeclaration.get(), environment);
+    }
+
+    std::shared_ptr<Class> classDefinition = std::make_shared<Class>(statement.m_name.m_lexeme, std::move(methods), std::move(staticMethods));
 
     environment->Define(statement.m_name.m_lexeme, Value(classDefinition)); 
 }
@@ -662,6 +669,19 @@ void Interpreter::VisitGetExpression(const GetExpression& getExpression, IExpres
             std::string errorMessage = "Undefined property '" + std::string(getExpression.m_name.m_lexeme) + "'.";
             throw InterpreterError(getExpression.m_name, errorMessage);
         }
+    }
+    else if (const std::shared_ptr<const Class>* classDefinition = owner.GetClass())
+    {
+        if (const Function *method = (*classDefinition)->GetStaticMethod(getExpression.m_name.m_lexeme))
+        {
+            result->m_result = Value(method);
+        }
+        else
+        {
+            std::string errorMessage = "Undefined static function '" + std::string(getExpression.m_name.m_lexeme) + "'.";
+            throw InterpreterError(getExpression.m_name, errorMessage);
+        }
+
     }
     else
     {

@@ -114,6 +114,7 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
     std::map<const IExpression*, size_t>& m_locals;
 
     FunctionType m_functionType = FunctionType::None;
+    bool m_isInsideStaticMethod = false;
     bool m_isInsideClass = false;
     bool m_isInsideCycle = false;
     const Token* m_breakEncountered = nullptr;
@@ -239,6 +240,13 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
         FunctionType functionType = methodDeclaration->m_name.m_lexeme == statement.m_name.m_lexeme ? FunctionType::Constructor : FunctionType::Function; 
         ResolveFunction(methodDeclaration->m_parameters, methodDeclaration->m_body, resolverContext, functionType);
     }
+
+    resolverContext.m_isInsideStaticMethod = true;
+    for(const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_staticMethods)
+    {
+        ResolveFunction(methodDeclaration->m_parameters, methodDeclaration->m_body, resolverContext, FunctionType::Function);
+    }
+    resolverContext.m_isInsideStaticMethod = false;
 
     resolverContext.EndScope();
 
@@ -417,6 +425,11 @@ void Resolver::VisitThisExpression(const ThisExpression& thisExpression, IExpres
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
 
+    if (resolverContext.m_isInsideStaticMethod)
+    {
+        resolverContext.m_hasErrors = true;
+        Gekko::ReportError(thisExpression.m_keyword, "Can't use 'this' inside class static methods.");
+    }
     if (resolverContext.m_isInsideClass)
     {
         resolverContext.ResolveLocal(thisExpression, thisExpression.m_keyword);

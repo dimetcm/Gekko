@@ -44,9 +44,11 @@ void FunctionDeclarationStatement::Accept(const IStatementVisitor& visitor, ISta
 
 ClassDeclarationStatement::ClassDeclarationStatement(
     const Token& name,
-    std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods)
+    std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods,
+    std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& staticMethods)
     : m_name(name)
     , m_methods(std::move(methods))
+    , m_staticMethods(std::move(staticMethods))
 {}
 
 void ClassDeclarationStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const

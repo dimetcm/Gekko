@@ -1,0 +1,9 @@
+class Math
+{
+    class Square(x)
+    {
+        return x * x;
+    }
+}
+
+print Math.Square(3);

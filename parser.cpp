@@ -96,14 +96,22 @@ IStatementPtr Parser::ParseClassDeclaration()
     Consume(Token::Type::OpeningBrace, "Expect '{' before class body.");
 
     std::vector<std::unique_ptr<FunctionDeclarationStatement>> methods;
+    std::vector<std::unique_ptr<FunctionDeclarationStatement>> staticMethods;
     while (CurrentToken().m_type != Token::Type::ClosingBrace && CurrentToken().m_type != Token::Type::EndOfFile)
     {
-        methods.push_back(ParseFunctionDeclaration(FunctionType::ClassMethod));
+        if (ConsumeIfMatch(Token::Type::Class))
+        {
+            staticMethods.push_back(ParseFunctionDeclaration(FunctionType::ClassMethod));
+        }
+        else
+        {
+            methods.push_back(ParseFunctionDeclaration(FunctionType::ClassMethod));
+        }
     }
 
     Consume(Token::Type::ClosingBrace, "Expect '}' after class body.");
 
-    return std::make_unique<ClassDeclarationStatement>(name, std::move(methods));
+    return std::make_unique<ClassDeclarationStatement>(name, std::move(methods), std::move(staticMethods));
 }
 
 IStatementPtr Parser::ParseVariableDeclaration()
