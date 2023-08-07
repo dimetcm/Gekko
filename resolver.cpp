@@ -237,16 +237,11 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
 
     for(const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_methods)
     {
-        FunctionType functionType = methodDeclaration->m_name.m_lexeme == statement.m_name.m_lexeme ? FunctionType::Constructor : FunctionType::Function; 
+        FunctionType functionType = methodDeclaration->m_name.m_lexeme == statement.m_name.m_lexeme ? FunctionType::Constructor : FunctionType::Function;
+        resolverContext.m_isInsideStaticMethod = methodDeclaration->m_type == FunctionDeclarationStatement::FunctionDeclarationType::MemberStaticFunction;
         ResolveFunction(methodDeclaration->m_parameters, methodDeclaration->m_body, resolverContext, functionType);
+        resolverContext.m_isInsideStaticMethod = false;
     }
-
-    resolverContext.m_isInsideStaticMethod = true;
-    for(const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_staticMethods)
-    {
-        ResolveFunction(methodDeclaration->m_parameters, methodDeclaration->m_body, resolverContext, FunctionType::Function);
-    }
-    resolverContext.m_isInsideStaticMethod = false;
 
     resolverContext.EndScope();
 

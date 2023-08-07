@@ -96,22 +96,14 @@ IStatementPtr Parser::ParseClassDeclaration()
     Consume(Token::Type::OpeningBrace, "Expect '{' before class body.");
 
     std::vector<std::unique_ptr<FunctionDeclarationStatement>> methods;
-    std::vector<std::unique_ptr<FunctionDeclarationStatement>> staticMethods;
     while (CurrentToken().m_type != Token::Type::ClosingBrace && CurrentToken().m_type != Token::Type::EndOfFile)
     {
-        if (ConsumeIfMatch(Token::Type::Class))
-        {
-            staticMethods.push_back(ParseFunctionDeclaration(FunctionType::ClassMethod));
-        }
-        else
-        {
-            methods.push_back(ParseFunctionDeclaration(FunctionType::ClassMethod));
-        }
+        methods.push_back(ParseFunctionDeclaration(FunctionType::ClassMethod));
     }
 
     Consume(Token::Type::ClosingBrace, "Expect '}' after class body.");
 
-    return std::make_unique<ClassDeclarationStatement>(name, std::move(methods), std::move(staticMethods));
+    return std::make_unique<ClassDeclarationStatement>(name, std::move(methods));
 }
 
 IStatementPtr Parser::ParseVariableDeclaration()
@@ -130,32 +122,51 @@ IStatementPtr Parser::ParseVariableDeclaration()
 
 std::unique_ptr<FunctionDeclarationStatement> Parser::ParseFunctionDeclaration(FunctionType functionType)
 {
-    const std::string functionTypeName = functionType == FunctionType::Function ? "function" : "class method"; 
+    FunctionDeclarationStatement::FunctionDeclarationType functionDeclarationType = functionType == FunctionType::Function ?
+        FunctionDeclarationStatement::FunctionDeclarationType::FreeFunction : FunctionDeclarationStatement::FunctionDeclarationType::MemberFunction;
+
+    if (functionType == FunctionType::ClassMethod && ConsumeIfMatch(Token::Type::Class))
+    {
+        functionDeclarationType = FunctionDeclarationStatement::FunctionDeclarationType::MemberStaticFunction;
+    }
+
+    const std::string functionTypeName = functionType == FunctionType::Function ? "function" : "class method";
     const Token& name = Consume(Token::Type::Identifier, "Expect " + functionTypeName + " name.");
-    Consume(Token::Type::OpeningParenthesis, "Expect '(' after " + functionTypeName + " name.");
 
     FunctionDeclarationStatement::ParametersType parameters;
 
-    if (!Match(Token::Type::ClosingParenthesis))
+    if (functionType == FunctionType::ClassMethod && ConsumeIfMatch(Token::Type::OpeningBrace))
     {
-        do
-        {
-            parameters.emplace_back(Consume(Token::Type::Identifier, "Expect parameter name."));
-            if (parameters.size() >= 255)
-            {
-                Gekko::ReportError(CurrentToken(), "Can't have more than 255 parameters.");
-            }
-
-        } while (ConsumeIfMatch(Token::Type::Comma));
-        
+        FunctionDeclarationStatement::BodyType functionBody = ParseBlock();
+        return std::make_unique<FunctionDeclarationStatement>(name,
+                                                            std::move(parameters),
+                                                            std::move(functionBody),
+                                                            FunctionDeclarationStatement::FunctionDeclarationType::MemberGetter);
     }
+    else
+    {
+        Consume(Token::Type::OpeningParenthesis, "Expect '(' after " + functionTypeName + " name.");
 
-    Consume(Token::Type::ClosingParenthesis, "Expect ')' after " + functionTypeName + " parameters.");
+        if (!Match(Token::Type::ClosingParenthesis))
+        {
+            do
+            {
+                parameters.emplace_back(Consume(Token::Type::Identifier, "Expect parameter name."));
+                if (parameters.size() >= 255)
+                {
+                    Gekko::ReportError(CurrentToken(), "Can't have more than 255 parameters.");
+                }
 
-    Consume(Token::Type::OpeningBrace, "Expect '{' before " + functionTypeName + " body.");
+            } while (ConsumeIfMatch(Token::Type::Comma));
+        }
 
-    FunctionDeclarationStatement::BodyType functionBody = ParseBlock();
-    return std::make_unique<FunctionDeclarationStatement>(name, std::move(parameters), std::move(functionBody));
+        Consume(Token::Type::ClosingParenthesis, "Expect ')' after " + functionTypeName + " parameters.");
+
+        Consume(Token::Type::OpeningBrace, "Expect '{' before " + functionTypeName + " body.");
+
+        FunctionDeclarationStatement::BodyType functionBody = ParseBlock();
+        return std::make_unique<FunctionDeclarationStatement>(name, std::move(parameters), std::move(functionBody), functionDeclarationType);
+    }
 }
 
 std::vector<IStatementPtr> Parser::ParseBlock()

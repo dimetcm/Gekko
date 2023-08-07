@@ -53,27 +53,33 @@ struct FunctionDeclarationStatement : IStatement
     using ParametersType = std::vector<std::reference_wrapper<const Token>>;
     using BodyType = std::vector<IStatementPtr>;
 
-    FunctionDeclarationStatement(const Token& name, ParametersType&& parameters, BodyType&& body);
+    enum class FunctionDeclarationType
+    {
+        FreeFunction,
+        MemberFunction,
+        MemberStaticFunction,
+        MemberGetter
+    };
+
+    FunctionDeclarationStatement(const Token& name, ParametersType&& parameters, BodyType&& body, FunctionDeclarationType type);
 
     virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
+
 
     const Token& m_name;
     ParametersType m_parameters;
     BodyType m_body;
+    FunctionDeclarationType m_type;
 };
 
 struct ClassDeclarationStatement : IStatement
 {
-    ClassDeclarationStatement(
-        const Token& name,
-        std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods,
-        std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& staticMethods);
+    ClassDeclarationStatement(const Token& name, std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods);
 
     virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     const Token& m_name;
     std::vector<std::unique_ptr<FunctionDeclarationStatement>> m_methods;
-    std::vector<std::unique_ptr<FunctionDeclarationStatement>> m_staticMethods;
 };
 
 struct BlockStatement : IStatement

@@ -185,6 +185,7 @@ class ThisTest
 {
   ThisTest(v)
   {
+    this.radius = v;
     this.constructor = v;
   }
 
@@ -192,11 +193,18 @@ class ThisTest
   {
     print this.value; 
   }
+
+  Area
+  {
+    return 3.14 * this.radius * this.radius;
+  }
 }
 
 var instance = ThisTest(10);
 print instance.constructor;
 instance.value = 42;
 instance.Call();
+
+print instance.Area;
 
 // this.outsideOfTheClass = 5.0;

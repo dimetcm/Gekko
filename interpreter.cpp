@@ -305,18 +305,28 @@ void Interpreter::VisitClassDeclarationStatement(const ClassDeclarationStatement
     EnvironmentPtr environment = GetEnvironment(*context);
 
     std::map<std::string_view, const Function*> methods;
+    std::map<std::string_view, const Function*> staticMethods;
+    std::map<std::string_view, const Function*> getters;
     for (const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_methods)
     {
-        methods[methodDeclaration->m_name.m_lexeme] = GetFunctionsRegistry(*context).Register<Function>(*methodDeclaration.get(), environment);
+        const std::string_view methodName = methodDeclaration->m_name.m_lexeme;
+        const Function* function = GetFunctionsRegistry(*context).Register<Function>(*methodDeclaration.get(), environment);
+        switch (methodDeclaration->m_type)
+        {
+        case FunctionDeclarationStatement::FunctionDeclarationType::MemberFunction:
+            methods[methodName] = function; break;
+        case FunctionDeclarationStatement::FunctionDeclarationType::MemberStaticFunction:
+            staticMethods[methodName] = function; break;
+        case FunctionDeclarationStatement::FunctionDeclarationType::MemberGetter:
+            getters[methodName] = function; break;
+        default:
+            assert(false); // no default
+            break;
+        }   
     }
 
-    std::map<std::string_view, const Function*> staticMethods;
-    for (const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_staticMethods)
-    {
-        staticMethods[methodDeclaration->m_name.m_lexeme] = GetFunctionsRegistry(*context).Register<Function>(*methodDeclaration.get(), environment);
-    }
-
-    std::shared_ptr<Class> classDefinition = std::make_shared<Class>(statement.m_name.m_lexeme, std::move(methods), std::move(staticMethods));
+    std::shared_ptr<Class> classDefinition = std::make_shared<Class>(
+        statement.m_name.m_lexeme, std::move(methods), std::move(staticMethods), std::move(getters));
 
     environment->Define(statement.m_name.m_lexeme, Value(classDefinition)); 
 }
@@ -664,6 +674,14 @@ void Interpreter::VisitGetExpression(const GetExpression& getExpression, IExpres
         {
             result->m_result = Value(method->Bind(*instance, GetFunctionsRegistry(*context)));
         }
+        else if (const Function *getter = (*instance)->m_definition.GetGetter(getExpression.m_name.m_lexeme))
+        {
+            const Function* boundGetter = getter->Bind(*instance, GetFunctionsRegistry(*context));
+            result->m_result = boundGetter->Call(*this,
+                                                GetEnvironment(*context)->GetGlobalEnvironment(),
+                                                GetFunctionsRegistry(*context),
+                                                std::vector<Value>());
+        }
         else
         {
             std::string errorMessage = "Undefined property '" + std::string(getExpression.m_name.m_lexeme) + "'.";
@@ -681,7 +699,6 @@ void Interpreter::VisitGetExpression(const GetExpression& getExpression, IExpres
             std::string errorMessage = "Undefined static function '" + std::string(getExpression.m_name.m_lexeme) + "'.";
             throw InterpreterError(getExpression.m_name, errorMessage);
         }
-
     }
     else
     {

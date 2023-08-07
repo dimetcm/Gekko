@@ -22,7 +22,8 @@ class Class
 public:
     Class(std::string_view name,
         std::map<std::string_view, const Function*>&& methods,
-        std::map<std::string_view, const Function*>&& staticMethods);
+        std::map<std::string_view, const Function*>&& staticMethods,
+        std::map<std::string_view, const Function*>&& getters);
 
     std::shared_ptr<ClassInstance> CreateInstance() const;
 
@@ -30,8 +31,10 @@ public:
 
     const Function* GetMethod(std::string_view name) const;
     const Function* GetStaticMethod(std::string_view name) const;
+    const Function* GetGetter(std::string_view name) const;
 private:
     std::string_view m_name;
     std::map<std::string_view, const Function*> m_methods;
     std::map<std::string_view, const Function*> m_staticMethods;
+    std::map<std::string_view, const Function*> m_getters;
 };

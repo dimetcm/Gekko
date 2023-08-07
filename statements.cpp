@@ -31,10 +31,11 @@ void VariableDeclarationStatement::Accept(const IStatementVisitor& visitor, ISta
 }
 
 FunctionDeclarationStatement::FunctionDeclarationStatement(
-    const Token& name, ParametersType&& parameters, BodyType&& body)
+    const Token& name, ParametersType&& parameters, BodyType&& body, FunctionDeclarationType type)
     : m_name(name)
     , m_parameters(std::move(parameters))
     , m_body(std::move(body))
+    , m_type(type)
 {}
 
 void FunctionDeclarationStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
@@ -42,13 +43,9 @@ void FunctionDeclarationStatement::Accept(const IStatementVisitor& visitor, ISta
     visitor.VisitFunctionDeclarationStatement(*this, context);
 }
 
-ClassDeclarationStatement::ClassDeclarationStatement(
-    const Token& name,
-    std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods,
-    std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& staticMethods)
+ClassDeclarationStatement::ClassDeclarationStatement(const Token& name, std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods)
     : m_name(name)
     , m_methods(std::move(methods))
-    , m_staticMethods(std::move(staticMethods))
 {}
 
 void ClassDeclarationStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const

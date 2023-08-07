@@ -6,10 +6,12 @@ ClassInstance::ClassInstance(const Class& definition)
 
 Class::Class(std::string_view name,
      std::map<std::string_view, const Function *> &&methods,
-     std::map<std::string_view, const Function*>&& staticMethods)
+     std::map<std::string_view, const Function*>&& staticMethods,
+     std::map<std::string_view, const Function*>&& getters)
     : m_name(name),
     m_methods(std::move(methods)),
-    m_staticMethods(std::move(staticMethods))
+    m_staticMethods(std::move(staticMethods)),
+    m_getters(std::move(getters))
 {
 }
 
@@ -18,24 +20,29 @@ std::shared_ptr<ClassInstance> Class::CreateInstance() const
     return std::make_shared<ClassInstance>(*this);
 }
 
-const Function* Class::GetMethod(std::string_view name) const
+static const Function* GetMethodByName(const std::map<std::string_view, const Function*>& methods, std::string_view name)
 {
-    auto it = m_methods.find(name);
-    if (it != m_methods.end())
+    auto it = methods.find(name);
+    if (it != methods.end())
     {
         return it->second;
     }
 
     return nullptr;
+
+}
+
+const Function* Class::GetMethod(std::string_view name) const
+{
+    return GetMethodByName(m_methods, name);
 }
 
 const Function* Class::GetStaticMethod(std::string_view name) const
 {
-    auto it = m_staticMethods.find(name);
-    if (it != m_staticMethods.end())
-    {
-        return it->second;
-    }
+    return GetMethodByName(m_staticMethods, name);
+}
 
-    return nullptr;
+const Function* Class::GetGetter(std::string_view name) const
+{
+    return GetMethodByName(m_getters, name);
 }
