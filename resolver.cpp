@@ -234,6 +234,11 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
 
     if (statement.m_superClass)
     {
+        if (statement.m_name.m_lexeme == statement.m_superClass->m_name.m_lexeme)
+        {
+            resolverContext.m_hasErrors = true;
+            Gekko::ReportError(statement.m_superClass->m_name, "A class can't inherit from itself.");
+        }
         Resolve(*statement.m_superClass, resolverContext);
     }
 
