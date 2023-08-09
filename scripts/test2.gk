@@ -7,3 +7,4 @@ class Math
 }
 
 print Math.Square(3);
+

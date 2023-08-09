@@ -21,6 +21,7 @@ class Class
 {
 public:
     Class(std::string_view name,
+        std::shared_ptr<const Class> superClass,
         std::map<std::string_view, const Function*>&& methods,
         std::map<std::string_view, const Function*>&& staticMethods,
         std::map<std::string_view, const Function*>&& getters);
@@ -37,4 +38,5 @@ private:
     std::map<std::string_view, const Function*> m_methods;
     std::map<std::string_view, const Function*> m_staticMethods;
     std::map<std::string_view, const Function*> m_getters;
+    std::shared_ptr<const Class> m_superClass;
 };

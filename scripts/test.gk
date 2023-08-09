@@ -208,3 +208,14 @@ instance.Call();
 print instance.Area;
 
 // this.outsideOfTheClass = 5.0;
+
+class BaseClass {
+  BaseMethod() 
+  {
+    print "Base method called.";
+  }
+}
+
+class ChildClass < BaseClass {}
+
+ChildClass().BaseMethod();

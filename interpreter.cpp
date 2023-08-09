@@ -303,6 +303,20 @@ void Interpreter::VisitFunctionDeclarationStatement(const FunctionDeclarationSta
 void Interpreter::VisitClassDeclarationStatement(const ClassDeclarationStatement& statement, IStatementVisitorContext* context) const
 {
     EnvironmentPtr environment = GetEnvironment(*context);
+    FunctionsRegistry& functionsRegistry = GetFunctionsRegistry(*context);
+    std::shared_ptr<const Class> superClass;
+    if (statement.m_superClass)
+    {
+        Value superClassValue = Eval(*statement.m_superClass, environment, functionsRegistry);
+        if (superClassValue.GetClass())
+        {
+            superClass = *superClassValue.GetClass();
+        }
+        else
+        {
+            throw InterpreterError(statement.m_superClass->m_name, "Superclass must be a class.");
+        }
+    } 
 
     std::map<std::string_view, const Function*> methods;
     std::map<std::string_view, const Function*> staticMethods;
@@ -310,7 +324,7 @@ void Interpreter::VisitClassDeclarationStatement(const ClassDeclarationStatement
     for (const std::unique_ptr<FunctionDeclarationStatement>& methodDeclaration : statement.m_methods)
     {
         const std::string_view methodName = methodDeclaration->m_name.m_lexeme;
-        const Function* function = GetFunctionsRegistry(*context).Register<Function>(*methodDeclaration.get(), environment);
+        const Function* function = functionsRegistry.Register<Function>(*methodDeclaration.get(), environment);
         switch (methodDeclaration->m_type)
         {
         case FunctionDeclarationStatement::FunctionDeclarationType::MemberFunction:
@@ -326,7 +340,7 @@ void Interpreter::VisitClassDeclarationStatement(const ClassDeclarationStatement
     }
 
     std::shared_ptr<Class> classDefinition = std::make_shared<Class>(
-        statement.m_name.m_lexeme, std::move(methods), std::move(staticMethods), std::move(getters));
+        statement.m_name.m_lexeme, superClass, std::move(methods), std::move(staticMethods), std::move(getters));
 
     environment->Define(statement.m_name.m_lexeme, Value(classDefinition)); 
 }
