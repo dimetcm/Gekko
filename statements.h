@@ -18,6 +18,7 @@ using IStatementPtr = std::unique_ptr<const IStatement>;
 
 struct IExpression;
 using IExpressionPtr = std::unique_ptr<const IExpression>;
+struct VariableExpression;
 
 struct ExpressionStatement : IStatement
 {
@@ -74,12 +75,13 @@ struct FunctionDeclarationStatement : IStatement
 
 struct ClassDeclarationStatement : IStatement
 {
-    ClassDeclarationStatement(const Token& name, std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods);
+    ClassDeclarationStatement(const Token& name, std::unique_ptr<VariableExpression>&& superClass, std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods);
 
     virtual void Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const override;
 
     const Token& m_name;
     std::vector<std::unique_ptr<FunctionDeclarationStatement>> m_methods;
+    std::unique_ptr<VariableExpression> m_superClass;
 };
 
 struct BlockStatement : IStatement

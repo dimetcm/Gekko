@@ -93,6 +93,13 @@ IStatementPtr Parser::ParseClassDeclaration()
 {
     const Token& name = Consume(Token::Type::Identifier, "Expect class name.");
 
+    std::unique_ptr<VariableExpression> superClass;
+    if (ConsumeIfMatch(Token::Type::Less))
+    {
+        Consume(Token::Type::Identifier, "Expect superclass name.");
+        superClass = std::make_unique<VariableExpression>(PreviousToken());
+    }
+
     Consume(Token::Type::OpeningBrace, "Expect '{' before class body.");
 
     std::vector<std::unique_ptr<FunctionDeclarationStatement>> methods;
@@ -103,7 +110,7 @@ IStatementPtr Parser::ParseClassDeclaration()
 
     Consume(Token::Type::ClosingBrace, "Expect '}' after class body.");
 
-    return std::make_unique<ClassDeclarationStatement>(name, std::move(methods));
+    return std::make_unique<ClassDeclarationStatement>(name, std::move(superClass), std::move(methods));
 }
 
 IStatementPtr Parser::ParseVariableDeclaration()

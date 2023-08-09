@@ -43,9 +43,10 @@ void FunctionDeclarationStatement::Accept(const IStatementVisitor& visitor, ISta
     visitor.VisitFunctionDeclarationStatement(*this, context);
 }
 
-ClassDeclarationStatement::ClassDeclarationStatement(const Token& name, std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods)
+ClassDeclarationStatement::ClassDeclarationStatement(const Token& name, std::unique_ptr<VariableExpression>&& superClass, std::vector<std::unique_ptr<FunctionDeclarationStatement>>&& methods)
     : m_name(name)
     , m_methods(std::move(methods))
+    , m_superClass(std::move(superClass))
 {}
 
 void ClassDeclarationStatement::Accept(const IStatementVisitor& visitor, IStatementVisitorContext* context) const
