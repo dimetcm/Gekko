@@ -232,6 +232,11 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
     resolverContext.Declare(statement.m_name);
     resolverContext.Define(statement.m_name);
 
+    if (statement.m_superClass)
+    {
+        Resolve(*statement.m_superClass, resolverContext);
+    }
+
     resolverContext.BeginScope();
     resolverContext.Define(TokenTypeToStringView(Token::Type::This));
 
