@@ -155,3 +155,13 @@ struct ThisExpression : IExpression
 
     const Token& m_keyword;
 };
+
+struct SuperExpression : IExpression
+{
+    SuperExpression(const Token& keyword, const Token& method);
+
+    virtual void Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const override;
+    
+    const Token& m_keyword;
+    const Token& m_method;
+};

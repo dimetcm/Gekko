@@ -18,6 +18,7 @@ struct GetExpression;
 struct SetExpression;
 struct LambdaExpression;
 struct ThisExpression;
+struct SuperExpression;
 
 struct IExpressionVisitor
 {
@@ -35,4 +36,5 @@ struct IExpressionVisitor
     virtual void VisitSetExpression(const SetExpression& getExpression, IExpressionVisitorContext* context) const {}
     virtual void VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const {}
     virtual void VisitThisExpression(const ThisExpression& thisExpression, IExpressionVisitorContext* context) const {}
+    virtual void VisitSuperExpression(const SuperExpression& superExpression, IExpressionVisitorContext* context) const {}
 };

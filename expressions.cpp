@@ -138,3 +138,13 @@ void ThisExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisito
 {
     visitor.VisitThisExpression(*this, context);
 }
+
+SuperExpression::SuperExpression(const Token& keyword, const Token& method)
+    : m_keyword(keyword)
+    , m_method(method)
+{}
+
+void SuperExpression::Accept(const IExpressionVisitor& visitor, IExpressionVisitorContext* context) const
+{
+    visitor.VisitSuperExpression(*this, context);
+}

@@ -568,6 +568,13 @@ IExpressionPtr Parser::ParsePrimary()
         return std::make_unique<LambdaExpression>(std::move(parameters), std::move(functionBody));
     }
     case Token::Type::This: return std::make_unique<ThisExpression>(token);
+    case Token::Type::Super:
+    {
+        const Token& keyword = token;
+        Consume(Token::Type::Dot, "Expect '.' after 'super'.");
+        const Token& method = Consume(Token::Type::Identifier, "Expect superclass method name.");
+        return std::make_unique<SuperExpression>(keyword, method);
+    }
     default: throw ParseError(token, "Unhandled primary token type.");
     }
 }
