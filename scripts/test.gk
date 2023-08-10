@@ -219,3 +219,18 @@ class BaseClass {
 class ChildClass < BaseClass {}
 
 ChildClass().BaseMethod();
+
+class AnotherBase {
+  Method() {
+    print "Base method called.";
+  }
+}
+
+class AnotherChild < AnotherBase {
+  Method() {
+    super.Method();
+    print "Child method called.";
+  }
+}
+
+AnotherChild().Method();

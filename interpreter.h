@@ -144,7 +144,7 @@ protected:
     virtual void VisitSetExpression(const SetExpression& setExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitLambdaExpression(const LambdaExpression& lambdaExpression, IExpressionVisitorContext* context) const override;
     virtual void VisitThisExpression(const ThisExpression& thisExpression, IExpressionVisitorContext* context) const override;
-
+    virtual void VisitSuperExpression(const SuperExpression& superExpression, IExpressionVisitorContext* context) const override;
 
     Value Eval(const IExpression& expression, EnvironmentPtr environment, FunctionsRegistry& functionsRegistry) const;
 

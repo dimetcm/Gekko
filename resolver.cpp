@@ -240,6 +240,9 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
             Gekko::ReportError(statement.m_superClass->m_name, "A class can't inherit from itself.");
         }
         Resolve(*statement.m_superClass, resolverContext);
+
+        resolverContext.BeginScope();
+        resolverContext.Define(TokenTypeToStringView(Token::Type::Super));    
     }
 
     resolverContext.BeginScope();
@@ -251,6 +254,11 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
         resolverContext.m_isInsideStaticMethod = methodDeclaration->m_type == FunctionDeclarationStatement::FunctionDeclarationType::MemberStaticFunction;
         ResolveFunction(methodDeclaration->m_parameters, methodDeclaration->m_body, resolverContext, functionType);
         resolverContext.m_isInsideStaticMethod = false;
+    }
+
+    if (statement.m_superClass)
+    {
+        resolverContext.EndScope();
     }
 
     resolverContext.EndScope();
@@ -444,4 +452,10 @@ void Resolver::VisitThisExpression(const ThisExpression& thisExpression, IExpres
         resolverContext.m_hasErrors = true;
         Gekko::ReportError(thisExpression.m_keyword, "Can't use 'this' outside of a class.");
     }
+}
+
+void Resolver::VisitSuperExpression(const SuperExpression& superExpression, IExpressionVisitorContext* context) const
+{
+    ResolverContext& resolverContext = GetResolverContext(*context);
+    resolverContext.ResolveLocal(superExpression, superExpression.m_keyword);
 }

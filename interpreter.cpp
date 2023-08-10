@@ -316,6 +316,9 @@ void Interpreter::VisitClassDeclarationStatement(const ClassDeclarationStatement
         {
             throw InterpreterError(statement.m_superClass->m_name, "Superclass must be a class.");
         }
+
+        environment = Environment::CreateLocalEnvironment(environment);
+        environment->Define(TokenTypeToStringView(Token::Type::Super), superClassValue);
     } 
 
     std::map<std::string_view, const Function*> methods;
@@ -337,6 +340,11 @@ void Interpreter::VisitClassDeclarationStatement(const ClassDeclarationStatement
             assert(false); // no default
             break;
         }   
+    }
+
+    if (statement.m_superClass)
+    {
+        environment = environment->GetOuter();
     }
 
     std::shared_ptr<Class> classDefinition = std::make_shared<Class>(
@@ -766,6 +774,37 @@ void Interpreter::VisitThisExpression(const ThisExpression& thisExpression, IExp
         {
             result->m_result = environment->GetValue(thisExpression.m_keyword, it->second);
         }
+    }
+}
+
+void Interpreter::VisitSuperExpression(const SuperExpression& superExpression, IExpressionVisitorContext* context) const
+{
+    ExpressionVisitorContext* result = static_cast<ExpressionVisitorContext*>(context);
+    EnvironmentPtr environment = result->m_environment;
+
+    auto it = m_locals.find(&superExpression);
+    assert(it != m_locals.end());
+
+    Value superClassValue = environment->GetValue(superExpression.m_keyword, it->second);
+    assert(superClassValue.GetClass());
+    std::shared_ptr<const Class> superClass = *superClassValue.GetClass();
+
+    Token thisToken = superExpression.m_keyword;
+    thisToken.m_type = Token::Type::This;
+    thisToken.m_lexeme = TokenTypeToStringView(Token::Type::This);
+
+    Value instanceValue = environment->GetValue(thisToken, it->second-1);
+    assert(instanceValue.GetClassInstace());
+    std::shared_ptr<ClassInstance> classInstance = *instanceValue.GetClassInstace();
+
+    if (const Function* method = superClass->GetMethod(superExpression.m_method.m_lexeme))
+    {
+        result->m_result = Value(method->Bind(classInstance, GetFunctionsRegistry(*context)));
+    }
+    else
+    {
+        std::string errorMessage = "Undefined property '" + std::string(superExpression.m_method.m_lexeme) + "'.";
+        throw InterpreterError(superExpression.m_method, errorMessage);
     }
 }
 
