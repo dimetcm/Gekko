@@ -12,6 +12,13 @@ enum class FunctionType
     Constructor
 };
 
+enum class ClassType
+{
+    None,
+    Class,
+    Subclass
+};
+
 struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
 {
     ResolverContext(std::map<const IExpression*, size_t>& locals, bool& hasErrors)
@@ -114,8 +121,8 @@ struct ResolverContext : IStatementVisitorContext, IExpressionVisitorContext
     std::map<const IExpression*, size_t>& m_locals;
 
     FunctionType m_functionType = FunctionType::None;
+    ClassType m_classType = ClassType::None;
     bool m_isInsideStaticMethod = false;
-    bool m_isInsideClass = false;
     bool m_isInsideCycle = false;
     const Token* m_breakEncountered = nullptr;
     const Token* m_returnEncountered = nullptr;
@@ -226,14 +233,16 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
 {
     ResolverContext& resolverContext = GetResolverContext(*context); 
 
-    bool wasInsideClass = resolverContext.m_isInsideClass;
-    resolverContext.m_isInsideClass = true;
+    ClassType oldClassType = resolverContext.m_classType;
+    resolverContext.m_classType = ClassType::Class;
 
     resolverContext.Declare(statement.m_name);
     resolverContext.Define(statement.m_name);
 
     if (statement.m_superClass)
     {
+        resolverContext.m_classType = ClassType::Subclass;
+
         if (statement.m_name.m_lexeme == statement.m_superClass->m_name.m_lexeme)
         {
             resolverContext.m_hasErrors = true;
@@ -263,7 +272,7 @@ void Resolver::VisitClassDeclarationStatement(const ClassDeclarationStatement& s
 
     resolverContext.EndScope();
 
-    resolverContext.m_isInsideClass = wasInsideClass;
+    resolverContext.m_classType = oldClassType;
 }
 
 void Resolver::VisitBlockStatement(const BlockStatement& statement, IStatementVisitorContext* context) const
@@ -443,7 +452,8 @@ void Resolver::VisitThisExpression(const ThisExpression& thisExpression, IExpres
         resolverContext.m_hasErrors = true;
         Gekko::ReportError(thisExpression.m_keyword, "Can't use 'this' inside class static methods.");
     }
-    if (resolverContext.m_isInsideClass)
+
+    if (resolverContext.m_classType == ClassType::Class || resolverContext.m_classType == ClassType::Subclass)
     {
         resolverContext.ResolveLocal(thisExpression, thisExpression.m_keyword);
     }
@@ -457,5 +467,19 @@ void Resolver::VisitThisExpression(const ThisExpression& thisExpression, IExpres
 void Resolver::VisitSuperExpression(const SuperExpression& superExpression, IExpressionVisitorContext* context) const
 {
     ResolverContext& resolverContext = GetResolverContext(*context);
-    resolverContext.ResolveLocal(superExpression, superExpression.m_keyword);
+
+    if (resolverContext.m_classType == ClassType::None)
+    {
+        resolverContext.m_hasErrors = true;
+        Gekko::ReportError(superExpression.m_keyword, "Can't use 'super' outside of a class.");
+    }
+    else if (resolverContext.m_classType == ClassType::Class)
+    {
+        resolverContext.m_hasErrors = true;
+        Gekko::ReportError(superExpression.m_keyword, "Can't use 'super' in a class with no superclass.");
+    }
+    else
+    {
+        resolverContext.ResolveLocal(superExpression, superExpression.m_keyword);
+    }
 }
